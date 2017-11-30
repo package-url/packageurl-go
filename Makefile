@@ -1,7 +1,7 @@
 .PHONY: test clean lint
 
 test:
-	curl -L https://raw.githubusercontent.com/package-url/purl-test-suite/master/test-suite-data.json -o testdata/test-suite-data.json
+	curl -L https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
 	go test -v -cover ./...
 
 clean:
