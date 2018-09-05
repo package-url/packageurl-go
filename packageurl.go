@@ -61,7 +61,7 @@ func NewPackageURL(purlType, namespace, name, version string,
 // This is the literal purl as defined by the spec.
 func (p *PackageURL) ToString() string {
 	// Start with the type and a colon
-	purl := fmt.Sprintf("%s:", p.Type)
+	purl := fmt.Sprintf("pkg:%s/", p.Type)
 	// Add namespaces if provided
 	if p.Namespace != "" {
 		ns := []string{}
@@ -144,6 +144,12 @@ func FromString(purl string) (PackageURL, error) {
 	}
 
 	nextSplit := strings.SplitN(remainder, ":", 2)
+	if len(nextSplit) != 2 || nextSplit[0] != "pkg" {
+		return PackageURL{}, errors.New("scheme is missing")
+	}
+	remainder = nextSplit[1]
+
+	nextSplit = strings.SplitN(remainder, "/", 2)
 	if len(nextSplit) != 2 {
 		return PackageURL{}, errors.New("type is missing")
 	}
