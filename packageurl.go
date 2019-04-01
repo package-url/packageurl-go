@@ -113,7 +113,7 @@ func FromString(purl string) (PackageURL, error) {
 			if item != "" {
 				i, err := url.PathUnescape(item)
 				if err != nil {
-					panic(err)
+					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
 				rightSides = append(rightSides, i)
 			}
@@ -136,7 +136,7 @@ func FromString(purl string) (PackageURL, error) {
 			}
 			value, err := url.PathUnescape(kv[1])
 			if err != nil {
-				panic(err)
+				return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 			}
 			qualifiers[key] = value
 		}
@@ -174,7 +174,7 @@ func FromString(purl string) (PackageURL, error) {
 			if item != "" {
 				unescaped, err := url.PathUnescape(item)
 				if err != nil {
-					panic(err)
+					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
 				namespaces = append(namespaces, unescaped)
 			}
