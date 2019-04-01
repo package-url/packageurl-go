@@ -72,8 +72,15 @@ var (
 	TypeRPM = "rpm"
 )
 
-// Qualifiers houses each key=value pair in the package url
-type Qualifiers map[string]string
+// Qualifier represents a single key=value qualifier in the package url
+type Qualifier struct {
+	Key   string
+	Value string
+}
+
+// Qualifiers is a slice of key=value pairs, with order preserved as it appears
+// in the package URL.
+type Qualifiers []Qualifier
 
 // PackageURL is the struct representation of the parts that make a package url
 type PackageURL struct {
@@ -121,10 +128,9 @@ func (p *PackageURL) ToString() string {
 	}
 
 	// Iterate over qualifiers and make groups of key=value
-	qualifiers := []string{}
-	for k, v := range p.Qualifiers {
-		// A value must be must be a percent-encoded string
-		qualifiers = append(qualifiers, fmt.Sprintf("%s=%s", k, url.PathEscape(v)))
+	var qualifiers []string
+	for _, q := range p.Qualifiers {
+		qualifiers = append(qualifiers, fmt.Sprintf("%s=%s", q.Key, q.Value))
 	}
 	// If there one or more key=value pairs then append on the package url
 	if len(qualifiers) != 0 {
@@ -135,6 +141,10 @@ func (p *PackageURL) ToString() string {
 		purl = purl + "#" + p.Subpath
 	}
 	return purl
+}
+
+func (p *PackageURL) String() string {
+	return p.ToString()
 }
 
 // FromString parses a valid package url string into a PackageURL structure
@@ -190,7 +200,7 @@ func FromString(purl string) (PackageURL, error) {
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier value: %s", err)
 			}
-			qualifiers[key] = value
+			qualifiers = append(qualifiers, Qualifier{key, value})
 		}
 		remainder = remainder[:index]
 	}
