@@ -27,7 +27,49 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
+)
+
+var (
+	// QualifierKeyPattern describes a valid qualifier key:
+	//
+	// - The key must be composed only of ASCII letters and numbers, '.',
+	//   '-' and '_' (period, dash and underscore).
+	// - A key cannot start with a number.
+	QualifierKeyPattern = regexp.MustCompile(`^[A-Za-z\.\-_][0-9A-Za-z\.\-_]*$`)
+)
+
+// These are the known purl types as defined in the spec. Some of these require
+// special treatment during parsing.
+// https://github.com/package-url/purl-spec#known-purl-types
+var (
+	// TypeBitbucket is a pkg:bitbucket purl.
+	TypeBitbucket = "bitbucket"
+	// TypeComposer is a pkg:composer purl.
+	TypeComposer = "composer"
+	// TypeDebian is a pkg:deb purl.
+	TypeDebian = "debian"
+	// TypeDocker is a pkg:docker purl.
+	TypeDocker = "docker"
+	// TypeGem is a pkg:gem purl.
+	TypeGem = "gem"
+	// TypeGeneric is a pkg:generic purl.
+	TypeGeneric = "generic"
+	// TypeGithub is a pkg:github purl.
+	TypeGithub = "github"
+	// TypeGolang is a pkg:golang purl.
+	TypeGolang = "golang"
+	// TypeMaven is a pkg:maven purl.
+	TypeMaven = "maven"
+	// TypeNPM is a pkg:npm purl.
+	TypeNPM = "npm"
+	// TypeNuget is a pkg:nuget purl.
+	TypeNuget = "nuget"
+	// TypePyPi is a pkg:pypi purl.
+	TypePyPi = "pypi"
+	// TypeRPM is a pkg:rpm purl.
+	TypeRPM = "rpm"
 )
 
 // Qualifiers houses each key=value pair in the package url
@@ -70,17 +112,19 @@ func (p *PackageURL) ToString() string {
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
-	// The name is always required
-	purl = purl + p.Name
+	// The name is always required and must be a percent-encoded string
+	purl = purl + url.PathEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
-		purl = purl + "@" + p.Version
+		// A name must be a percent-encoded string
+		purl = purl + "@" + url.PathEscape(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
 	qualifiers := []string{}
 	for k, v := range p.Qualifiers {
-		qualifiers = append(qualifiers, fmt.Sprintf("%s=%s", k, v))
+		// A value must be must be a percent-encoded string
+		qualifiers = append(qualifiers, fmt.Sprintf("%s=%s", k, url.PathEscape(v)))
 	}
 	// If there one or more key=value pairs then append on the package url
 	if len(qualifiers) != 0 {
@@ -128,6 +172,14 @@ func FromString(purl string) (PackageURL, error) {
 		for _, item := range strings.Split(qualifier, "&") {
 			kv := strings.Split(item, "=")
 			key := strings.ToLower(kv[0])
+			key, err := url.PathUnescape(key)
+			if err != nil {
+				return PackageURL{}, fmt.Errorf("failed to unescape qualifier key: %s", err)
+			}
+			if !validQualifierKey(key) {
+				return PackageURL{}, fmt.Errorf("invalid qualifier key: '%s'", key)
+			}
+
 			// TODO
 			//  - If the `key` is `checksums`, split the `value` on ',' to create
 			//    a list of `checksums`
@@ -136,7 +188,7 @@ func FromString(purl string) (PackageURL, error) {
 			}
 			value, err := url.PathUnescape(kv[1])
 			if err != nil {
-				return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
+				return PackageURL{}, fmt.Errorf("failed to unescape qualifier value: %s", err)
 			}
 			qualifiers[key] = value
 		}
@@ -153,8 +205,11 @@ func FromString(purl string) (PackageURL, error) {
 	if len(nextSplit) != 2 {
 		return PackageURL{}, errors.New("type is missing")
 	}
-	purlType := nextSplit[0]
-	remainder = nextSplit[1]
+	// purl type is case-insensitive, canonical form is lower-case
+	purlType := strings.ToLower(nextSplit[0])
+	// leading slashes after pkg: are to be ignored (pkg://maven is
+	// equivalent to pkg:maven)
+	remainder = strings.TrimLeft(nextSplit[1], "/")
 
 	index = strings.LastIndex(remainder, "/")
 	name := remainder[index+1:]
@@ -162,7 +217,11 @@ func FromString(purl string) (PackageURL, error) {
 
 	atIndex := strings.Index(name, "@")
 	if atIndex != -1 {
-		version = name[atIndex+1:]
+		v, err := url.PathUnescape(name[atIndex+1:])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
+		}
+		version = v
 		name = name[:atIndex]
 	}
 	namespaces := []string{}
@@ -180,6 +239,8 @@ func FromString(purl string) (PackageURL, error) {
 			}
 		}
 	}
+	namespace := strings.Join(namespaces, "/")
+	namespace = typeAdjustNamespace(purlType, namespace)
 
 	// Fail if name is empty at this point
 	if name == "" {
@@ -188,10 +249,36 @@ func FromString(purl string) (PackageURL, error) {
 
 	return PackageURL{
 		Type:       purlType,
-		Namespace:  strings.Join(namespaces, "/"),
+		Namespace:  namespace,
 		Name:       name,
 		Version:    version,
 		Qualifiers: qualifiers,
 		Subpath:    substring,
 	}, nil
+}
+
+// Make any purl type-specific adjustments to the parsed namespace.
+// See https://github.com/package-url/purl-spec#known-purl-types
+func typeAdjustNamespace(purlType, ns string) string {
+	switch purlType {
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeRPM:
+		return strings.ToLower(ns)
+	}
+	return ns
+}
+
+// Make any purl type-specific adjustments to the parsed name.
+// See https://github.com/package-url/purl-spec#known-purl-types
+func typeAdjustName(purlType, name string) string {
+	switch purlType {
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM:
+		return strings.ToLower(name)
+	case TypePyPi:
+		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
+	}
+	return name
+}
+
+func validQualifierKey(key string) bool {
+	return QualifierKeyPattern.MatchString(key)
 }
