@@ -137,16 +137,42 @@ func TestFromStringExamples(t *testing.T) {
 	// Use FromString on each item in the test set
 	for _, tc := range testData {
 		// Should parse without issue
-		result, err := packageurl.FromString(tc.Purl)
+		p, err := packageurl.FromString(tc.Purl)
 		if tc.IsInvalid == false {
 			if err != nil {
 				t.Logf("%s failed: %s", tc.Description, err)
 				t.Fail()
 			}
+			// verify parsing
+			if p.Type != tc.PackageType {
+				t.Logf("%s: incorrect package type: wanted: '%s', got '%s'", tc.Description, tc.PackageType, p.Type)
+				t.Fail()
+			}
+			if p.Namespace != tc.Namespace {
+				t.Logf("%s: incorrect namespace: wanted: '%s', got '%s'", tc.Description, tc.Namespace, p.Namespace)
+				t.Fail()
+			}
+			if p.Name != tc.Name {
+				t.Logf("%s: incorrect name: wanted: '%s', got '%s'", tc.Description, tc.Name, p.Name)
+				t.Fail()
+			}
+			if p.Version != tc.Version {
+				t.Logf("%s: incorrect version: wanted: '%s', got '%s'", tc.Description, tc.Version, p.Version)
+				t.Fail()
+			}
+			if !reflect.DeepEqual(p.Qualifiers, tc.Qualifiers()) {
+				t.Logf("%s: incorrect qualifiers: wanted: '%#v', got '%#v'", tc.Description, tc.Qualifiers(), p.Qualifiers)
+				t.Fail()
+			}
+
+			if p.Subpath != tc.Subpath {
+				t.Logf("%s: incorrect subpath: wanted: '%s', got '%s'", tc.Description, tc.Subpath, p.Subpath)
+				t.Fail()
+			}
 		} else {
 			// Invalid cases
 			if err == nil {
-				t.Logf("%s did not fail and returned %#v", tc.Description, result)
+				t.Logf("%s did not fail and returned %#v", tc.Description, p)
 				t.Fail()
 			}
 		}
@@ -222,4 +248,48 @@ func TestStringer(t *testing.T) {
 			t.Fail()
 		}
 	}
+}
+
+// Verify correct conversion of Qualifiers to a string map and vice versa.
+func TestQualifiersMapConversion(t *testing.T) {
+	tests := []struct {
+		kvMap      map[string]string
+		qualifiers packageurl.Qualifiers
+	}{
+		{
+			kvMap:      map[string]string{},
+			qualifiers: packageurl.Qualifiers{},
+		},
+		{
+			kvMap: map[string]string{"arch": "amd64"},
+			qualifiers: packageurl.Qualifiers{
+				packageurl.Qualifier{Key: "arch", Value: "amd64"},
+			},
+		},
+		{
+			kvMap: map[string]string{"arch": "amd64", "os": "linux"},
+			qualifiers: packageurl.Qualifiers{
+				packageurl.Qualifier{Key: "arch", Value: "amd64"},
+				packageurl.Qualifier{Key: "os", Value: "linux"},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		// map -> Qualifiers
+		got := packageurl.QualifiersFromMap(test.kvMap)
+		if !reflect.DeepEqual(got, test.qualifiers) {
+			t.Logf("map -> qualifiers conversion failed: got: %#v, wanted: %#v", got, test.qualifiers)
+			t.Fail()
+		}
+
+		// Qualifiers -> map
+		mp := test.qualifiers.Map()
+		if !reflect.DeepEqual(mp, test.kvMap) {
+			t.Logf("qualifiers -> map conversion failed: got: %#v, wanted: %#v", mp, test.kvMap)
+			t.Fail()
+		}
+
+	}
+
 }
