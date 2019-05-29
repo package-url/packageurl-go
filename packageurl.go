@@ -78,9 +78,48 @@ type Qualifier struct {
 	Value string
 }
 
+func (q Qualifier) String() string {
+	// A value must be must be a percent-encoded string
+	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
+}
+
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
 // in the package URL.
 type Qualifiers []Qualifier
+
+// QualifiersFromMap constructs a Qualifiers struct from a string map. Note that
+// since map does not have any iteration ordering guarantee, the exact order of
+// the qualifiers is not fully deterministic.
+func QualifiersFromMap(mm map[string]string) Qualifiers {
+	q := Qualifiers{}
+
+	for k, v := range mm {
+		q = append(q, Qualifier{Key: k, Value: v})
+	}
+
+	return q
+}
+
+// Map converts a Qualifiers struct to a string map.
+func (qq Qualifiers) Map() map[string]string {
+	m := make(map[string]string, 0)
+
+	for i := 0; i < len(qq); i++ {
+		k := qq[i].Key
+		v := qq[i].Value
+		m[k] = v
+	}
+
+	return m
+}
+
+func (qq Qualifiers) String() string {
+	var kvPairs []string
+	for _, q := range qq {
+		kvPairs = append(kvPairs, q.String())
+	}
+	return strings.Join(kvPairs, "&")
+}
 
 // PackageURL is the struct representation of the parts that make a package url
 type PackageURL struct {
@@ -130,7 +169,7 @@ func (p *PackageURL) ToString() string {
 	// Iterate over qualifiers and make groups of key=value
 	var qualifiers []string
 	for _, q := range p.Qualifiers {
-		qualifiers = append(qualifiers, fmt.Sprintf("%s=%s", q.Key, q.Value))
+		qualifiers = append(qualifiers, q.String())
 	}
 	// If there one or more key=value pairs then append on the package url
 	if len(qualifiers) != 0 {
@@ -172,7 +211,7 @@ func FromString(purl string) (PackageURL, error) {
 				rightSides = append(rightSides, i)
 			}
 		}
-		substring = strings.Join(rightSides, "")
+		substring = strings.Join(rightSides, "/")
 	}
 	qualifiers := Qualifiers{}
 	index := strings.LastIndex(remainder, "?")
@@ -189,7 +228,6 @@ func FromString(purl string) (PackageURL, error) {
 			if !validQualifierKey(key) {
 				return PackageURL{}, fmt.Errorf("invalid qualifier key: '%s'", key)
 			}
-
 			// TODO
 			//  - If the `key` is `checksums`, split the `value` on ',' to create
 			//    a list of `checksums`
@@ -209,7 +247,9 @@ func FromString(purl string) (PackageURL, error) {
 	if len(nextSplit) != 2 || nextSplit[0] != "pkg" {
 		return PackageURL{}, errors.New("scheme is missing")
 	}
-	remainder = nextSplit[1]
+	// leading slashes after pkg: are to be ignored (pkg://maven is
+	// equivalent to pkg:maven)
+	remainder = strings.TrimLeft(nextSplit[1], "/")
 
 	nextSplit = strings.SplitN(remainder, "/", 2)
 	if len(nextSplit) != 2 {
@@ -217,12 +257,10 @@ func FromString(purl string) (PackageURL, error) {
 	}
 	// purl type is case-insensitive, canonical form is lower-case
 	purlType := strings.ToLower(nextSplit[0])
-	// leading slashes after pkg: are to be ignored (pkg://maven is
-	// equivalent to pkg:maven)
-	remainder = strings.TrimLeft(nextSplit[1], "/")
+	remainder = nextSplit[1]
 
 	index = strings.LastIndex(remainder, "/")
-	name := remainder[index+1:]
+	name := typeAdjustName(purlType, remainder[index+1:])
 	version := ""
 
 	atIndex := strings.Index(name, "@")
