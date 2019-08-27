@@ -2,7 +2,7 @@
 
 Go implementation of the package url spec
 
-[![Build Status](https://travis-ci.org/package-url/packageurl-go.svg)](https://travis-ci.org/package-url/packageurl-go)
+[![Build Status](https://travis-ci.com/package-url/packageurl-go.svg)](https://travis-ci.com/package-url/packageurl-go)
 
 
 ## Install
