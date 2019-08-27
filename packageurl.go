@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -87,15 +88,18 @@ func (q Qualifier) String() string {
 // in the package URL.
 type Qualifiers []Qualifier
 
-// QualifiersFromMap constructs a Qualifiers struct from a string map. Note that
-// since map does not have any iteration ordering guarantee, the exact order of
-// the qualifiers is not fully deterministic.
+// QualifiersFromMap constructs a Qualifiers slice from a string map. To get a
+// deterministic qualifier order (despite maps not providing any iteration order
+// guarantees) the returned Qualifiers are sorted in increasing order of key.
 func QualifiersFromMap(mm map[string]string) Qualifiers {
 	q := Qualifiers{}
 
 	for k, v := range mm {
 		q = append(q, Qualifier{Key: k, Value: v})
 	}
+
+	// sort for deterministic qualifier order
+	sort.Slice(q, func(i int, j int) bool { return q[i].Key < q[j].Key })
 
 	return q
 }
