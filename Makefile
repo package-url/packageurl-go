@@ -8,5 +8,5 @@ clean:
 	find . -name "test-suite-data.json" | xargs rm -f
 
 lint:
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 	golint -set_exit_status
