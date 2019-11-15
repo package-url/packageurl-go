@@ -186,7 +186,7 @@ func (p *PackageURL) ToString() string {
 	return purl
 }
 
-func (p *PackageURL) String() string {
+func (p PackageURL) String() string {
 	return p.ToString()
 }
 

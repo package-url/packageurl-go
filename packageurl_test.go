@@ -237,14 +237,22 @@ func TestStringer(t *testing.T) {
 		if tc.IsInvalid == true {
 			continue
 		}
-		instance := packageurl.NewPackageURL(
+		purlPtr := packageurl.NewPackageURL(
 			tc.PackageType, tc.Namespace, tc.Name,
 			tc.Version, tc.Qualifiers(), tc.Subpath)
+		purlValue := *purlPtr
 
 		// Verify that the Stringer implementation returns a result
 		// equivalent to ToString().
-		if instance.ToString() != instance.String() {
-			t.Logf("%s failed: Stringer implementation differs from ToString: %s != %s", tc.Description, instance.String(), instance.ToString())
+		if purlPtr.ToString() != purlPtr.String() {
+			t.Logf("%s failed: Stringer implementation differs from ToString: %s != %s", tc.Description, purlPtr.String(), purlPtr.ToString())
+			t.Fail()
+		}
+
+		// Verify that the %s format modifier works for values.
+		fmtStr := fmt.Sprintf("%s", purlValue)
+		if fmtStr != purlPtr.String() {
+			t.Logf("%s failed: %%s format modifier does not work on values: %s != %s", tc.Description, fmtStr, purlPtr.ToString())
 			t.Fail()
 		}
 	}
