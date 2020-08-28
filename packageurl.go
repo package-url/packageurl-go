@@ -50,7 +50,7 @@ var (
 	// TypeComposer is a pkg:composer purl.
 	TypeComposer = "composer"
 	// TypeDebian is a pkg:deb purl.
-	TypeDebian = "debian"
+	TypeDebian = "deb"
 	// TypeDocker is a pkg:docker purl.
 	TypeDocker = "docker"
 	// TypeGem is a pkg:gem purl.
