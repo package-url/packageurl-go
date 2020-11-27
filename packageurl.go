@@ -158,7 +158,7 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		ns := []string{}
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.QueryEscape(item))
+			ns = append(ns, url.PathEscape(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
@@ -181,7 +181,11 @@ func (p *PackageURL) ToString() string {
 	}
 	// Add a subpath if available
 	if p.Subpath != "" {
-		purl = purl + "#" + p.Subpath
+		path := []string{}
+		for _, item := range strings.Split(p.Subpath, "/") {
+			path = append(path, url.PathEscape(item))
+		}
+		purl = purl + "#" + strings.Join(path, "/")
 	}
 	return purl
 }
@@ -274,7 +278,10 @@ func FromString(purl string) (PackageURL, error) {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
 		version = v
-		name = name[:atIndex]
+		name, err = url.PathUnescape(name[:atIndex])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
+		}
 	}
 	namespaces := []string{}
 
