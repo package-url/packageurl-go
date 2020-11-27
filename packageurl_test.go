@@ -301,3 +301,83 @@ func TestQualifiersMapConversion(t *testing.T) {
 	}
 
 }
+
+// TestEncoding verifies that a string representation parsed by FromString and
+// and returned by ToString will have URL encoding set where required:
+// https://github.com/package-url/purl-spec#rules-for-each-purl-component
+// Note that this is not covered by test suite data verification since its
+// unencoded purls are marked as invalid, despite being accepted as input here.
+func TestEncoding(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "input without need for encoding is unchanged",
+			input:    "pkg:type/name/space/name@version?key=value#sub/path",
+			expected: "pkg:type/name/space/name@version?key=value#sub/path",
+		},
+		{
+			name:     "unencoded namespace segment is encoded",
+			input:    "pkg:type/name/spac e/name@version?key=value#sub/path",
+			expected: "pkg:type/name/spac%20e/name@version?key=value#sub/path",
+		},
+		{
+			name:     "pre-encoded namespace segment is unchanged",
+			input:    "pkg:type/name/spac%20e/name@version?key=value#sub/path",
+			expected: "pkg:type/name/spac%20e/name@version?key=value#sub/path",
+		},
+		{
+			name:     "unencoded name is encoded is encoded",
+			input:    "pkg:type/name/space/nam e@version?key=value#sub/path",
+			expected: "pkg:type/name/space/nam%20e@version?key=value#sub/path",
+		},
+		{
+			name:     "pre-encoded name is unchanged",
+			input:    "pkg:type/name/space/nam%20e@version?key=value#sub/path",
+			expected: "pkg:type/name/space/nam%20e@version?key=value#sub/path",
+		},
+		{
+			name:     "unencoded version is encoded",
+			input:    "pkg:type/name/space/name@versio n?key=value#sub/path",
+			expected: "pkg:type/name/space/name@versio%20n?key=value#sub/path",
+		},
+		{
+			name:     "pre-encoded version is unchanged",
+			input:    "pkg:type/name/space/name@versio%20n?key=value#sub/path",
+			expected: "pkg:type/name/space/name@versio%20n?key=value#sub/path",
+		},
+		{
+			name:     "unencoded qualifier value is encoded",
+			input:    "pkg:type/name/space/name@version?key=valu e#sub/path",
+			expected: "pkg:type/name/space/name@version?key=valu%20e#sub/path",
+		},
+		{
+			name:     "pre-encoded qualifier value is unchanged",
+			input:    "pkg:type/name/space/name@version?key=valu%20e#sub/path",
+			expected: "pkg:type/name/space/name@version?key=valu%20e#sub/path",
+		},
+		{
+			name:     "unencoded subpath segment is encoded",
+			input:    "pkg:type/name/space/name@version?key=value#sub/pat h",
+			expected: "pkg:type/name/space/name@version?key=value#sub/pat%20h",
+		},
+		{
+			name:     "pre-encoded subpath segment is unchanged",
+			input:    "pkg:type/name/space/name@version?key=value#sub/pat%20h",
+			expected: "pkg:type/name/space/name@version?key=value#sub/pat%20h",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := packageurl.FromString(tc.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.expected != got.ToString() {
+				t.Fatalf("expected %s to parse as %s but got %s", tc.input, tc.expected, got.ToString())
+			}
+		})
+	}
+}
