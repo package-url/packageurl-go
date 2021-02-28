@@ -47,6 +47,8 @@ var (
 var (
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
+	// TypeCargo is a pkg:cargo purl.
+	TypeCargo = "cargo"
 	// TypeComposer is a pkg:composer purl.
 	TypeComposer = "composer"
 	// TypeDebian is a pkg:deb purl.
