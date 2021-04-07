@@ -2,12 +2,12 @@
 
 Go implementation of the package url spec
 
-[![Build Status](https://travis-ci.com/package-url/packageurl-go.svg)](https://travis-ci.com/package-url/packageurl-go)
+[![Build Status](https://circleci.com/gh/softsense/packageurl-go.svg)](https://circleci.com/gh/softsense/packageurl-go)
 
 
 ## Install
 ```
-go get -u github.com/package-url/packageurl-go
+go get -u github.com/softsense/packageurl-go
 ```
 
 ## Versioning
@@ -24,7 +24,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/package-url/packageurl-go"
+	"github.com/softsense/packageurl-go"
 )
 
 func main() {
@@ -40,7 +40,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/package-url/packageurl-go"
+	"github.com/softsense/packageurl-go"
 )
 
 func main() {
@@ -70,5 +70,5 @@ go test -v -cover ./...
 --- PASS: TestToStringExamples (0.00s)
 PASS
 coverage: 94.7% of statements
-ok      github.com/package-url/packageurl-go    0.002s
+ok      github.com/softsense/packageurl-go    0.002s
 ```

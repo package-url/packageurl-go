@@ -1,0 +1,72 @@
+version: 2.1
+
+orbs:
+  ci: softsense/ci-tools@0.1.42
+
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.12 # Primary container image where all steps run.
+        environment:
+          TZ: UTC
+    environment:
+      # Test result directory. go-short is the name of the test result
+      TEST_RESULTS: /tmp/test-results/go-short
+    steps:
+      - checkout
+      - run:
+          name: Running unit tests
+          command: |
+            # Prepare CircleCI test summary https://circleci.com/docs/2.0/collect-test-data/
+            mkdir -p ${TEST_RESULTS}
+            go get github.com/jstemmer/go-junit-report # The reporter used to format tests for CircleCI
+
+            # Run tests and export results
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT # Format tests
+            make test | tee ${TEST_RESULTS}/go-test.out
+      - store_test_results: # Upload test results for display in Test Summary
+          path: /tmp/test-results
+
+# Most likely you can keep the workflows as is
+workflows:
+  version: 2
+  branch:
+    jobs:
+      - test:
+          context: softsense
+          filters:
+            branches:
+              ignore:
+                - master
+            tags:
+              ignore:
+                - /^.*/
+
+  master:
+    jobs:
+      - test:
+          context: softsense
+          filters:
+            branches:
+              only:
+                - master
+
+      - ci/create_version:
+          name: create_release_version
+          snapshot: false
+          prefix: "v"
+          context: softsense
+          requires:
+            - test
+
+      - ci/release:
+          name: release
+          github_release: true
+          draft: true
+          context: softsense
+          requires:
+            - create_release_version
+          filters:
+            branches:
+              only:
+                - master
