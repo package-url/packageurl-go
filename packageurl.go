@@ -267,6 +267,19 @@ func FromString(purl string) (PackageURL, error) {
 		remainder = remainder[:index]
 	}
 
+	// start out by extracting the purl version (if one is specified) to
+	// prevent it from being type-adjusted (might change casing, for example)
+	atIndex := strings.Index(remainder, "@")
+	version := ""
+	if atIndex != -1 {
+		v, err := url.PathUnescape(remainder[atIndex+1:])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
+		}
+		version = v
+		remainder = remainder[:atIndex]
+	}
+
 	nextSplit := strings.SplitN(remainder, ":", 2)
 	if len(nextSplit) != 2 || nextSplit[0] != "pkg" {
 		return PackageURL{}, errors.New("scheme is missing")
@@ -287,21 +300,12 @@ func FromString(purl string) (PackageURL, error) {
 	remainder = nextSplit[1]
 
 	index = strings.LastIndex(remainder, "/")
-	name := typeAdjustName(purlType, remainder[index+1:])
-	version := ""
-
-	atIndex := strings.Index(name, "@")
-	if atIndex != -1 {
-		v, err := url.PathUnescape(name[atIndex+1:])
-		if err != nil {
-			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
-		}
-		version = v
-		name, err = url.PathUnescape(name[:atIndex])
-		if err != nil {
-			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
-		}
+	adjusted := typeAdjustName(purlType, remainder[index+1:])
+	name, err := url.PathUnescape(adjusted)
+	if err != nil {
+		return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
 	}
+
 	namespaces := []string{}
 
 	if index != -1 {

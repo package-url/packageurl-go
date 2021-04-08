@@ -445,3 +445,60 @@ func TestUnparsable(t *testing.T) {
 		})
 	}
 }
+
+// TestTypeAdjust complements the test suite data verification with checking
+// name and namespace parsing adjustments according to the package type.
+func TestTypeAdjust(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "bitbucket lower case namespace and name",
+			input:    "pkg:bitbucket/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:bitbucket/name/space/nam_e@version?key=value#sub/path",
+		},
+		{
+			name:     "debian lower case namespace and name",
+			input:    "pkg:debian/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:debian/name/space/nam_e@version?key=value#sub/path",
+		},
+		{
+			name:     "github lower case namespace and name",
+			input:    "pkg:github/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:github/name/space/nam_e@version?key=value#sub/path",
+		},
+		{
+			name:     "golang lower case namespace and name",
+			input:    "pkg:golang/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:golang/name/space/nam_e@version?key=value#sub/path",
+		},
+		{
+			name:     "npm lower case namespace and name",
+			input:    "pkg:npm/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:npm/name/space/nam_e@version?key=value#sub/path",
+		},
+		{
+			name:     "rpm lower case namespace",
+			input:    "pkg:rpm/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:rpm/name/space/NAM_E@version?key=value#sub/path",
+		},
+		{
+			name:     "pypi lower case name and _ replaced with -",
+			input:    "pkg:pypi/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:pypi/NAME/SPACE/nam-e@version?key=value#sub/path",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := packageurl.FromString(tc.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.expected != got.ToString() {
+				t.Fatalf("expected %s to parse as %s but got %s", tc.input, tc.expected, got.ToString())
+			}
+		})
+	}
+}
