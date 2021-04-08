@@ -303,7 +303,7 @@ func TestQualifiersMapConversion(t *testing.T) {
 }
 
 // TestEncoding verifies that a string representation parsed by FromString and
-// and returned by ToString will have URL encoding set where required:
+// returned by ToString will have URL encoding set where required:
 // https://github.com/package-url/purl-spec#rules-for-each-purl-component
 // Note that this is not covered by test suite data verification since its
 // unencoded purls are marked as invalid, despite being accepted as input here.
@@ -329,7 +329,7 @@ func TestEncoding(t *testing.T) {
 			expected: "pkg:type/name/spac%20e/name@version?key=value#sub/path",
 		},
 		{
-			name:     "unencoded name is encoded is encoded",
+			name:     "unencoded name is encoded",
 			input:    "pkg:type/name/space/nam e@version?key=value#sub/path",
 			expected: "pkg:type/name/space/nam%20e@version?key=value#sub/path",
 		},
@@ -368,6 +368,21 @@ func TestEncoding(t *testing.T) {
 			input:    "pkg:type/name/space/name@version?key=value#sub/pat%20h",
 			expected: "pkg:type/name/space/name@version?key=value#sub/pat%20h",
 		},
+		{
+			name:     "reserved character '@' is not decoded",
+			input:    "pkg:type/name/spac%40e/name@version?key=value#sub/path",
+			expected: "pkg:type/name/spac%40e/name@version?key=value#sub/path",
+		},
+		{
+			name:     "reserved character '?' is not decoded",
+			input:    "pkg:type/name/spac%3Fe/name@version?key=value#sub/path",
+			expected: "pkg:type/name/spac%3Fe/name@version?key=value#sub/path",
+		},
+		{
+			name:     "reserved character '#' is not decoded",
+			input:    "pkg:type/name/spac%23e/name@version?key=value#sub/path",
+			expected: "pkg:type/name/spac%23e/name@version?key=value#sub/path",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -377,6 +392,55 @@ func TestEncoding(t *testing.T) {
 			}
 			if tc.expected != got.ToString() {
 				t.Fatalf("expected %s to parse as %s but got %s", tc.input, tc.expected, got.ToString())
+			}
+		})
+	}
+}
+
+// TestUnparsable verifies that a string representation can not be parsed by
+// FromString if it contains characters that are invalid for a component or
+// that are reserved due to ambiguity:
+// https://github.com/package-url/purl-spec#rules-for-each-purl-component
+// Note that these cases are missing from test suite data verification.
+func TestUnparsable(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "type containing invalid character",
+			input: "pkg:typ:e/name/space/name@version?key=value#sub/path",
+		},
+		{
+			name:  "type starting with number",
+			input: "pkg:1type/name/space/name@version?key=value#sub/path",
+		},
+		{
+			name:  "qualifier key containing invalid character",
+			input: "pkg:type/name/space/name@version?ke:y=value#sub/path",
+		},
+		{
+			name:  "qualifier key starting with number",
+			input: "pkg:type/name/space/name@version?1key=value#sub/path",
+		},
+		{
+			name:  "multiple unencoded reserved characters '@'",
+			input: "pkg:type/name/space/name@versio@n?key=value#sub/path",
+		},
+		{
+			name:  "multiple unencoded reserved characters '?'",
+			input: "pkg:type/name/space/name@version?key=valu?e#sub/path",
+		},
+		{
+			name:  "multiple unencoded reserved characters '#'",
+			input: "pkg:type/name/space/name@version?key=value#sub/pat#h",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := packageurl.FromString(tc.input)
+			if err == nil {
+				t.Fatalf("expected %s parsing to fail, but got %s", tc.input, got)
 			}
 		})
 	}

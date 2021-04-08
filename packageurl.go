@@ -33,6 +33,12 @@ import (
 )
 
 var (
+	// TypePattern describes a valid type:
+	//
+	// - The package type is composed only of ASCII letters and numbers, '.',
+	//   '+' and '-' (period, plus, and dash).
+	// - The type cannot start with a number.
+	TypePattern = regexp.MustCompile(`^[A-Za-z\.\-_][0-9A-Za-z\.\-_]*$`)
 	// QualifierKeyPattern describes a valid qualifier key:
 	//
 	// - The key must be composed only of ASCII letters and numbers, '.',
@@ -81,7 +87,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, percentEncode(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -158,16 +164,16 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		ns := []string{}
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.PathEscape(item))
+			ns = append(ns, percentEncode(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	purl = purl + url.PathEscape(p.Name)
+	purl = purl + percentEncode(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
-		purl = purl + "@" + url.PathEscape(p.Version)
+		purl = purl + "@" + percentEncode(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
@@ -183,7 +189,7 @@ func (p *PackageURL) ToString() string {
 	if p.Subpath != "" {
 		path := []string{}
 		for _, item := range strings.Split(p.Subpath, "/") {
-			path = append(path, url.PathEscape(item))
+			path = append(path, percentEncode(item))
 		}
 		purl = purl + "#" + strings.Join(path, "/")
 	}
@@ -196,6 +202,16 @@ func (p PackageURL) String() string {
 
 // FromString parses a valid package url string into a PackageURL structure
 func FromString(purl string) (PackageURL, error) {
+	if strings.Count(purl, "@") > 1 {
+		return PackageURL{}, errors.New("multiple unencoded version separators '@'")
+	}
+	if strings.Count(purl, "?") > 1 {
+		return PackageURL{}, errors.New("multiple unencoded qualifiers separators '?'")
+	}
+	if strings.Count(purl, "#") > 1 {
+		return PackageURL{}, errors.New("multiple unencoded subpath separators '#'")
+	}
+
 	initialIndex := strings.Index(purl, "#")
 	// Start with purl being stored in the remainder
 	remainder := purl
@@ -233,7 +249,7 @@ func FromString(purl string) (PackageURL, error) {
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier key: %s", err)
 			}
-			if !validQualifierKey(key) {
+			if !QualifierKeyPattern.MatchString(key) {
 				return PackageURL{}, fmt.Errorf("invalid qualifier key: '%s'", key)
 			}
 			// TODO
@@ -265,6 +281,9 @@ func FromString(purl string) (PackageURL, error) {
 	}
 	// purl type is case-insensitive, canonical form is lower-case
 	purlType := strings.ToLower(nextSplit[0])
+	if !TypePattern.MatchString(purlType) {
+		return PackageURL{}, fmt.Errorf("invalid type: '%s'", purlType)
+	}
 	remainder = nextSplit[1]
 
 	index = strings.LastIndex(remainder, "/")
@@ -316,6 +335,13 @@ func FromString(purl string) (PackageURL, error) {
 	}, nil
 }
 
+// Percent-encode a purl component.
+// See https://github.com/package-url/purl-spec#character-encoding
+func percentEncode(segment string) string {
+	segment = url.PathEscape(segment)
+	return strings.ReplaceAll(segment, "@", "%40")
+}
+
 // Make any purl type-specific adjustments to the parsed namespace.
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustNamespace(purlType, ns string) string {
@@ -336,8 +362,4 @@ func typeAdjustName(purlType, name string) string {
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
 	}
 	return name
-}
-
-func validQualifierKey(key string) bool {
-	return QualifierKeyPattern.MatchString(key)
 }
