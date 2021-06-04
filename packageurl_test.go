@@ -461,8 +461,8 @@ func TestTypeAdjust(t *testing.T) {
 		},
 		{
 			name:     "debian lower case namespace and name",
-			input:    "pkg:debian/NAME/SPACE/NAM_E@version?key=value#sub/path",
-			expected: "pkg:debian/name/space/nam_e@version?key=value#sub/path",
+			input:    "pkg:deb/NAME/SPACE/NAM_E@version?key=value#sub/path",
+			expected: "pkg:deb/name/space/nam_e@version?key=value#sub/path",
 		},
 		{
 			name:     "github lower case namespace and name",
