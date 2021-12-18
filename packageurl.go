@@ -47,6 +47,10 @@ var (
 var (
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
+	// TypeCran is a pkg:cran purl.
+	TypeCran = "cran"
+	// TypeConan is pkg:conan purl.
+	TypeConan = "conan"
 	// TypeComposer is a pkg:composer purl.
 	TypeComposer = "composer"
 	// TypeDebian is a pkg:deb purl.
@@ -71,6 +75,8 @@ var (
 	TypePyPi = "pypi"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
+	// TypeSwift is pkg:swift purl
+	TypeSwift = "swift"
 )
 
 // Qualifier represents a single key=value qualifier in the package url
@@ -299,6 +305,11 @@ func FromString(purl string) (PackageURL, error) {
 		return PackageURL{}, errors.New("name is required")
 	}
 
+	err := validateCustomRules(purlType, name, namespace, version, qualifiers)
+	if err != nil {
+		return PackageURL{}, err
+	}
+
 	return PackageURL{
 		Type:       purlType,
 		Namespace:  namespace,
@@ -333,4 +344,39 @@ func typeAdjustName(purlType, name string) string {
 
 func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
+}
+
+func validateCustomRules(purlType, name, ns, version string, qualifiers Qualifiers) error {
+	q := qualifiers.Map()
+	switch purlType {
+	case TypeConan:
+		if ns != "" {
+			if val, ok := q["channel"]; ok {
+				if val == "" {
+					return errors.New("the qualifier channel must be not empty if namespace is present")
+				}
+			} else {
+				return errors.New("channel qualifier does not exist")
+			}
+		}
+		if ns == "" {
+			if val, ok := q["channel"]; ok {
+				if val != "" {
+					return errors.New("namespace is required if channel is non empty")
+				}
+			}
+		}
+	case TypeSwift:
+		if ns == "" {
+			return errors.New("namespace is required")
+		}
+		if version == "" {
+			return errors.New("version is required")
+		}
+	case TypeCran:
+		if version == "" {
+			return errors.New("version is required")
+		}
+	}
+	return nil
 }
