@@ -70,7 +70,7 @@ func (m *OrderedMap) UnmarshalJSON(bytes []byte) error {
 	switch data {
 	case "null":
 		m.OrderedKeys = []string{}
-		m.Map = make(map[string]string, 0)
+		m.Map = make(map[string]string)
 		return nil
 	default:
 		// ensure that the data is a json object "{...}"
@@ -90,7 +90,6 @@ func (m *OrderedMap) UnmarshalJSON(bytes []byte) error {
 					return fmt.Errorf("qualifiers parse error: expected delimiter '}', got: %v", token)
 				}
 				// closed json object -> we're done
-				break
 			case string:
 				// this token is a dictionary key
 				m.OrderedKeys = append(m.OrderedKeys, token)
@@ -250,7 +249,7 @@ func TestStringer(t *testing.T) {
 		}
 
 		// Verify that the %s format modifier works for values.
-		fmtStr := fmt.Sprintf("%s", purlValue)
+		fmtStr := purlValue.String()
 		if fmtStr != purlPtr.String() {
 			t.Logf("%s failed: %%s format modifier does not work on values: %s != %s", tc.Description, fmtStr, purlPtr.ToString())
 			t.Fail()

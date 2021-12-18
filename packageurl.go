@@ -106,7 +106,7 @@ func QualifiersFromMap(mm map[string]string) Qualifiers {
 
 // Map converts a Qualifiers struct to a string map.
 func (qq Qualifiers) Map() map[string]string {
-	m := make(map[string]string, 0)
+	m := make(map[string]string)
 
 	for i := 0; i < len(qq); i++ {
 		k := qq[i].Key
