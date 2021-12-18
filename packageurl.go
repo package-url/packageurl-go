@@ -80,7 +80,7 @@ type Qualifier struct {
 }
 
 func (q Qualifier) String() string {
-	// A value must be must be a percent-encoded string
+	// A value must be a percent-encoded string
 	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
 }
 
@@ -156,7 +156,7 @@ func (p *PackageURL) ToString() string {
 	purl := fmt.Sprintf("pkg:%s/", p.Type)
 	// Add namespaces if provided
 	if p.Namespace != "" {
-		ns := []string{}
+		var ns []string
 		for _, item := range strings.Split(p.Namespace, "/") {
 			ns = append(ns, url.QueryEscape(item))
 		}
@@ -276,7 +276,7 @@ func FromString(purl string) (PackageURL, error) {
 		version = v
 		name = name[:atIndex]
 	}
-	namespaces := []string{}
+	var namespaces []string
 
 	if index != -1 {
 		remainder = remainder[:index]

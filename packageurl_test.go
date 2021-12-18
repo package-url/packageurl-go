@@ -187,7 +187,7 @@ func TestToStringExamples(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Load the json file contents into a structure
-	testData := []TestFixture{}
+	var testData []TestFixture
 	err = json.Unmarshal(data, &testData)
 	if err != nil {
 		t.Fatal(err)
@@ -225,7 +225,7 @@ func TestStringer(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Load the json file contents into a structure
-	testData := []TestFixture{}
+	var testData []TestFixture
 	err = json.Unmarshal(data, &testData)
 	if err != nil {
 		t.Fatal(err)
