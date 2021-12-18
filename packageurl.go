@@ -305,7 +305,7 @@ func FromString(purl string) (PackageURL, error) {
 		return PackageURL{}, errors.New("name is required")
 	}
 
-	err := validateCustomRules(purlType, name, namespace, version, qualifiers)
+	err := validCustomRules(purlType, name, namespace, version, qualifiers)
 	if err != nil {
 		return PackageURL{}, err
 	}
@@ -342,11 +342,14 @@ func typeAdjustName(purlType, name string) string {
 	return name
 }
 
+// validQualifierKey validates a qualifierKey against our QualifierKeyPattern.
 func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
 }
 
-func validateCustomRules(purlType, name, ns, version string, qualifiers Qualifiers) error {
+// validCustomRules evaluates additional rules for each package url type, as specified in the package-url specification.
+// On success, it returns nil. On failure, a descriptive error will be returned.
+func validCustomRules(purlType, name, ns, version string, qualifiers Qualifiers) error {
 	q := qualifiers.Map()
 	switch purlType {
 	case TypeConan:
@@ -358,8 +361,7 @@ func validateCustomRules(purlType, name, ns, version string, qualifiers Qualifie
 			} else {
 				return errors.New("channel qualifier does not exist")
 			}
-		}
-		if ns == "" {
+		} else {
 			if val, ok := q["channel"]; ok {
 				if val != "" {
 					return errors.New("namespace is required if channel is non empty")
