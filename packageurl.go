@@ -47,14 +47,18 @@ var (
 var (
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
+	// TypeCocoapods is a pkg:cocoapods purl.
+	TypeCocoapods = "cocoapods"
 	// TypeCargo is a pkg:cargo purl.
 	TypeCargo = "cargo"
-	// TypeCran is a pkg:cran purl.
-	TypeCran = "cran"
-	// TypeConan is pkg:conan purl.
-	TypeConan = "conan"
 	// TypeComposer is a pkg:composer purl.
 	TypeComposer = "composer"
+	// TypeConan is a pkg:conan purl.
+	TypeConan = "conan"
+	// TypeConda is a pkg:conda purl.
+	TypeConda = "conda"
+	// TypeCran is a pkg:cran purl.
+	TypeCran = "cran"
 	// TypeDebian is a pkg:deb purl.
 	TypeDebian = "deb"
 	// TypeDocker is a pkg:docker purl.
@@ -67,12 +71,18 @@ var (
 	TypeGithub = "github"
 	// TypeGolang is a pkg:golang purl.
 	TypeGolang = "golang"
+	// TypeHackage is a pkg:hackage purl.
+	TypeHackage = "hackage"
+	// TypeHex is a pkg:hex purl.
+	TypeHex = "hex"
 	// TypeMaven is a pkg:maven purl.
 	TypeMaven = "maven"
 	// TypeNPM is a pkg:npm purl.
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
+	// TypeOCI is a pkg:oci purl
+	TypeOCI = "oci"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
 	// TypeRPM is a pkg:rpm purl.
