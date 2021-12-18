@@ -47,6 +47,8 @@ var (
 var (
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
+	// TypeCargo is a pkg:cargo purl.
+	TypeCargo = "cargo"
 	// TypeCran is a pkg:cran purl.
 	TypeCran = "cran"
 	// TypeConan is pkg:conan purl.
