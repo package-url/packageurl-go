@@ -1,8 +1,6 @@
 # packageurl-go
 
-Go implementation of the package url spec
-
-[![Build Status](https://travis-ci.com/package-url/packageurl-go.svg)](https://travis-ci.com/package-url/packageurl-go)
+Go implementation of the package url spec.
 
 
 ## Install
@@ -55,7 +53,7 @@ func main() {
 
 
 ## Test
-Testing using the normal ``go test`` command. Using ``make test`` will pull down the test fixtures shared between all package-url projects and then execute the tests.
+Testing using the normal ``go test`` command. Using ``make test`` will pull the test fixtures shared between all package-url projects and then execute the tests.
 
 ```
 $ make test
