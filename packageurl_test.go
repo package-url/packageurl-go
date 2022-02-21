@@ -300,3 +300,70 @@ func TestQualifiersMapConversion(t *testing.T) {
 	}
 
 }
+
+func TestStringPackageurlConversionDeconversion(t *testing.T) {
+	tests := []struct {
+		name        string
+		purl        string
+		wantErr     bool
+		wantSucceed bool
+	}{
+		{
+			name:        "'@' escaped to %40, '/' not escaped",
+			purl:        "pkg:npm/%40angular/animation@12.3.1",
+			wantErr:     false,
+			wantSucceed: true,
+		},
+		{
+			name:        "'@' escaped to %40, 2 '/', both not escaped to %2F",
+			purl:        "pkg:npm/%40angular/aaaaa/animation@12.3.1",
+			wantErr:     false,
+			wantSucceed: true,
+		},
+		{
+			name:        "'@' escaped to %40, second '/' escaped to %2F",
+			purl:        "pkg:npm/%40angular/aaaaa%2Fanimation@12.3.1",
+			wantErr:     false,
+			wantSucceed: false,
+		},
+		{
+			name:        "'@' escaped to %40, first '/' escaped to %2F",
+			purl:        "pkg:npm/%40angular%2faaaaa/animation@12.3.1",
+			wantErr:     false,
+			wantSucceed: false,
+		},
+		{
+			name:        "Capital letters in name",
+			purl:        "pkg:npm/JSONStream@1.3.5",
+			wantErr:     false,
+			wantSucceed: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			PURL, err := packageurl.FromString(tt.purl)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("packageurl.FromString(tt.purl) error = %v, wantErr %v", err, tt.wantErr)
+			}
+			// fmt.Println("#1#", PURL.Namespace, PURL.Name)
+
+			purlStr := PURL.ToString()
+			if purlStr != tt.purl && tt.wantSucceed {
+				t.Errorf("PURL.ToString() purlStr = %v, want %v", purlStr, tt.purl)
+			}
+			// fmt.Println("#2#", purlStr)
+
+			PURL1, err := packageurl.FromString(purlStr)
+			if (err != nil) != tt.wantErr && tt.wantSucceed {
+				t.Errorf("packageurl.FromString(purlStr) error = %v, wantErr %v", err, tt.wantErr)
+			}
+			// fmt.Println("#3#", PURL1.Namespace, PURL1.Name)
+
+			purlStr1 := PURL1.ToString()
+			if purlStr1 != tt.purl && tt.wantSucceed {
+				t.Errorf("PURL.ToString() purlStr1 = %v, want %v", purlStr1, tt.purl)
+			}
+			// fmt.Println("#4#", purlStr1)
+		})
+	}
+}
