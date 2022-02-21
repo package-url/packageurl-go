@@ -81,7 +81,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.QueryEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, PurlPathEscape(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -149,6 +149,29 @@ func NewPackageURL(purlType, namespace, name, version string,
 	}
 }
 
+func PurlPathEscape(s string) string {
+	st := url.PathEscape(s)
+	return Encode(st, "@")
+}
+
+const upperhex = "0123456789ABCDEF"
+
+func Encode(s string, charsToEncode string) string {
+	var t strings.Builder
+	for _, c := range s {
+		if strings.IndexRune(charsToEncode, c) != -1 {
+			for _, b := range []byte(string(c)) {
+				t.WriteByte('%')
+				t.WriteByte(upperhex[b>>4])
+				t.WriteByte(upperhex[b&15])
+			}
+		} else {
+			t.WriteRune(c)
+		}
+	}
+	return t.String()
+}
+
 // ToString returns the human readable instance of the PackageURL structure.
 // This is the literal purl as defined by the spec.
 func (p *PackageURL) ToString() string {
@@ -158,16 +181,16 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		ns := []string{}
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.QueryEscape(item))
+			ns = append(ns, PurlPathEscape(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	purl = purl + url.QueryEscape(p.Name)
+	purl = purl + PurlPathEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
-		purl = purl + "@" + url.QueryEscape(p.Version)
+		purl = purl + "@" + PurlPathEscape(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
@@ -183,7 +206,7 @@ func (p *PackageURL) ToString() string {
 	if p.Subpath != "" {
 		path := []string{}
 		for _, item := range strings.Split(p.Subpath, "/") {
-			path = append(path, url.QueryEscape(item))
+			path = append(path, PurlPathEscape(item))
 		}
 		purl = purl + "#" + strings.Join(path, "/")
 	}
@@ -212,7 +235,7 @@ func FromString(purl string) (PackageURL, error) {
 			item = strings.Replace(item, ".", "", -1)
 			item = strings.Replace(item, "..", "", -1)
 			if item != "" {
-				i, err := url.QueryUnescape(item)
+				i, err := url.PathUnescape(item)
 				if err != nil {
 					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
@@ -229,7 +252,7 @@ func FromString(purl string) (PackageURL, error) {
 		for _, item := range strings.Split(qualifier, "&") {
 			kv := strings.Split(item, "=")
 			key := strings.ToLower(kv[0])
-			key, err := url.QueryUnescape(key)
+			key, err := url.PathUnescape(key)
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier key: %s", err)
 			}
@@ -242,7 +265,7 @@ func FromString(purl string) (PackageURL, error) {
 			if kv[1] == "" {
 				continue
 			}
-			value, err := url.QueryUnescape(kv[1])
+			value, err := url.PathUnescape(kv[1])
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier value: %s", err)
 			}
@@ -273,12 +296,12 @@ func FromString(purl string) (PackageURL, error) {
 
 	atIndex := strings.Index(name, "@")
 	if atIndex != -1 {
-		v, err := url.QueryUnescape(name[atIndex+1:])
+		v, err := url.PathUnescape(name[atIndex+1:])
 		if err != nil {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
 		version = v
-		name, err = url.QueryUnescape(name[:atIndex])
+		name, err = url.PathUnescape(name[:atIndex])
 		if err != nil {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
 		}
@@ -290,7 +313,7 @@ func FromString(purl string) (PackageURL, error) {
 
 		for _, item := range strings.Split(remainder, "/") {
 			if item != "" {
-				unescaped, err := url.QueryUnescape(item)
+				unescaped, err := url.PathUnescape(item)
 				if err != nil {
 					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
