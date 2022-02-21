@@ -81,7 +81,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, url.QueryEscape(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -158,16 +158,16 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		ns := []string{}
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.PathEscape(item))
+			ns = append(ns, url.QueryEscape(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	purl = purl + url.PathEscape(p.Name)
+	purl = purl + url.QueryEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
-		purl = purl + "@" + url.PathEscape(p.Version)
+		purl = purl + "@" + url.QueryEscape(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
@@ -183,7 +183,7 @@ func (p *PackageURL) ToString() string {
 	if p.Subpath != "" {
 		path := []string{}
 		for _, item := range strings.Split(p.Subpath, "/") {
-			path = append(path, url.PathEscape(item))
+			path = append(path, url.QueryEscape(item))
 		}
 		purl = purl + "#" + strings.Join(path, "/")
 	}
@@ -212,7 +212,7 @@ func FromString(purl string) (PackageURL, error) {
 			item = strings.Replace(item, ".", "", -1)
 			item = strings.Replace(item, "..", "", -1)
 			if item != "" {
-				i, err := url.PathUnescape(item)
+				i, err := url.QueryUnescape(item)
 				if err != nil {
 					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
@@ -229,7 +229,7 @@ func FromString(purl string) (PackageURL, error) {
 		for _, item := range strings.Split(qualifier, "&") {
 			kv := strings.Split(item, "=")
 			key := strings.ToLower(kv[0])
-			key, err := url.PathUnescape(key)
+			key, err := url.QueryUnescape(key)
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier key: %s", err)
 			}
@@ -242,7 +242,7 @@ func FromString(purl string) (PackageURL, error) {
 			if kv[1] == "" {
 				continue
 			}
-			value, err := url.PathUnescape(kv[1])
+			value, err := url.QueryUnescape(kv[1])
 			if err != nil {
 				return PackageURL{}, fmt.Errorf("failed to unescape qualifier value: %s", err)
 			}
@@ -273,12 +273,12 @@ func FromString(purl string) (PackageURL, error) {
 
 	atIndex := strings.Index(name, "@")
 	if atIndex != -1 {
-		v, err := url.PathUnescape(name[atIndex+1:])
+		v, err := url.QueryUnescape(name[atIndex+1:])
 		if err != nil {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
 		version = v
-		name, err = url.PathUnescape(name[:atIndex])
+		name, err = url.QueryUnescape(name[:atIndex])
 		if err != nil {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
 		}
@@ -290,7 +290,7 @@ func FromString(purl string) (PackageURL, error) {
 
 		for _, item := range strings.Split(remainder, "/") {
 			if item != "" {
-				unescaped, err := url.PathUnescape(item)
+				unescaped, err := url.QueryUnescape(item)
 				if err != nil {
 					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
 				}
