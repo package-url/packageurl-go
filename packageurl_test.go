@@ -320,7 +320,7 @@ func TestEncoding(t *testing.T) {
 		},
 		{
 			name:     "unencoded namespace segment is encoded",
-			input:    "pkg:type/%3F%40name/spac e/name@version?key=value#sub/path",
+			input:    "pkg:type/%3F%40name/spac%20e/name@version?key=value#sub/path",
 			expected: "pkg:type/%3F%40name/spac%20e/name@version?key=value#sub/path",
 		},
 		{

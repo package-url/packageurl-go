@@ -30,6 +30,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -349,14 +350,15 @@ func validQualifierKey(key string) bool {
 // Make any purl type-specific adjustments to the url encoding.
 // See https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#character-encoding
 func PurlPathEscape(s string) string {
-	st := url.PathEscape(s)
-	return Encode(st, "@#")
+	// st := url.PathEscape(s)
+	// return Encode(st, "@#")
+	return Encode(s, "@#?")
 }
 
 func Encode(s string, charsToEncode string) string {
 	var t strings.Builder
 	for _, c := range s {
-		if strings.IndexRune(charsToEncode, c) != -1 {
+		if strings.IndexRune(charsToEncode, c) != -1 || c > unicode.MaxASCII || c == ' ' {
 			for _, b := range []byte(string(c)) {
 				t.WriteByte('%')
 				t.WriteByte(upperhex[b>>4])
