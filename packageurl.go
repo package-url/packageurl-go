@@ -352,13 +352,13 @@ func validQualifierKey(key string) bool {
 func PurlPathEscape(s string) string {
 	// st := url.PathEscape(s)
 	// return Encode(st, "@#")
-	return Encode(s, "@#?")
+	return Encode(s, "@#? ")
 }
 
 func Encode(s string, charsToEncode string) string {
 	var t strings.Builder
 	for _, c := range s {
-		if strings.IndexRune(charsToEncode, c) != -1 || c > unicode.MaxASCII || c == ' ' {
+		if strings.IndexRune(charsToEncode, c) != -1 || c > unicode.MaxASCII {
 			for _, b := range []byte(string(c)) {
 				t.WriteByte('%')
 				t.WriteByte(upperhex[b>>4])
