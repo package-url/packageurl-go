@@ -350,8 +350,6 @@ func validQualifierKey(key string) bool {
 // Make any purl type-specific adjustments to the url encoding.
 // See https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#character-encoding
 func PurlPathEscape(s string) string {
-	// st := url.PathEscape(s)
-	// return Encode(st, "@#")
 	return Encode(s, "@#? ")
 }
 
