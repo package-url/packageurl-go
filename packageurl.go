@@ -151,7 +151,7 @@ func NewPackageURL(purlType, namespace, name, version string,
 
 func PurlPathEscape(s string) string {
 	st := url.PathEscape(s)
-	return Encode(st, "@")
+	return Encode(st, "@#")
 }
 
 const upperhex = "0123456789ABCDEF"
