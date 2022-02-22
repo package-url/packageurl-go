@@ -380,7 +380,7 @@ func PurlPathEscape(s string) string {
 func Encode(s string, charsToEncode string) string {
 	var t strings.Builder
 	for _, c := range s {
-		if strings.IndexRune(charsToEncode, c) != -1 || c > unicode.MaxASCII {
+		if strings.ContainsRune(charsToEncode, c) || c > unicode.MaxASCII {
 			for _, b := range []byte(string(c)) {
 				t.WriteByte('%')
 				t.WriteByte(upperhex[b>>4])
