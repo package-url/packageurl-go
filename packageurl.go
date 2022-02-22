@@ -32,6 +32,10 @@ import (
 	"strings"
 )
 
+const (
+	upperhex = "0123456789ABCDEF"
+)
+
 var (
 	// QualifierKeyPattern describes a valid qualifier key:
 	//
@@ -147,29 +151,6 @@ func NewPackageURL(purlType, namespace, name, version string,
 		Qualifiers: qualifiers,
 		Subpath:    subpath,
 	}
-}
-
-func PurlPathEscape(s string) string {
-	st := url.PathEscape(s)
-	return Encode(st, "@#")
-}
-
-const upperhex = "0123456789ABCDEF"
-
-func Encode(s string, charsToEncode string) string {
-	var t strings.Builder
-	for _, c := range s {
-		if strings.IndexRune(charsToEncode, c) != -1 {
-			for _, b := range []byte(string(c)) {
-				t.WriteByte('%')
-				t.WriteByte(upperhex[b>>4])
-				t.WriteByte(upperhex[b&15])
-			}
-		} else {
-			t.WriteRune(c)
-		}
-	}
-	return t.String()
 }
 
 // ToString returns the human readable instance of the PackageURL structure.
@@ -363,4 +344,27 @@ func typeAdjustName(purlType, name string) string {
 
 func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
+}
+
+// Make any purl type-specific adjustments to the url encoding.
+// See https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#character-encoding
+func PurlPathEscape(s string) string {
+	st := url.PathEscape(s)
+	return Encode(st, "@#")
+}
+
+func Encode(s string, charsToEncode string) string {
+	var t strings.Builder
+	for _, c := range s {
+		if strings.IndexRune(charsToEncode, c) != -1 {
+			for _, b := range []byte(string(c)) {
+				t.WriteByte('%')
+				t.WriteByte(upperhex[b>>4])
+				t.WriteByte(upperhex[b&15])
+			}
+		} else {
+			t.WriteRune(c)
+		}
+	}
+	return t.String()
 }
