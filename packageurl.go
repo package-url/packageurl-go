@@ -33,10 +33,6 @@ import (
 	"unicode"
 )
 
-const (
-	upperhex = "0123456789ABCDEF"
-)
-
 var (
 	// QualifierKeyPattern describes a valid qualifier key:
 	//
@@ -104,7 +100,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, PurlPathEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, pathEscape(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -181,16 +177,16 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		var ns []string
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, PurlPathEscape(item))
+			ns = append(ns, pathEscape(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	purl = purl + PurlPathEscape(p.Name)
+	purl = purl + pathEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
-		purl = purl + "@" + PurlPathEscape(p.Version)
+		purl = purl + "@" + pathEscape(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
@@ -206,7 +202,7 @@ func (p *PackageURL) ToString() string {
 	if p.Subpath != "" {
 		path := []string{}
 		for _, item := range strings.Split(p.Subpath, "/") {
-			path = append(path, PurlPathEscape(item))
+			path = append(path, pathEscape(item))
 		}
 		purl = purl + "#" + strings.Join(path, "/")
 	}
@@ -371,22 +367,17 @@ func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
 }
 
-// Make any purl type-specific adjustments to the url encoding.
+// pathEscape Make any purl type-specific adjustments to the url encoding.
 // See https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#character-encoding
-func PurlPathEscape(s string) string {
-	return Encode(s, "@#? ")
-}
-
-func Encode(s string, charsToEncode string) string {
+func pathEscape(s string) string {
 	var t strings.Builder
 	for _, c := range s {
-		if strings.ContainsRune(charsToEncode, c) || c > unicode.MaxASCII {
-			for _, b := range []byte(string(c)) {
-				t.WriteByte('%')
-				t.WriteByte(upperhex[b>>4])
-				t.WriteByte(upperhex[b&15])
-			}
-		} else {
+		switch {
+		case c == '@':
+			t.WriteString("%40")
+		case c == '?' || c == '#' || c == ' ' || c > unicode.MaxASCII:
+			t.WriteString(url.PathEscape(string(c)))
+		default:
 			t.WriteRune(c)
 		}
 	}
