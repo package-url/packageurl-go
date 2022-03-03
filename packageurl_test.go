@@ -323,6 +323,16 @@ func TestEncoding(t *testing.T) {
 			expected: "pkg:type/name/spac%20e/name@version?key=value#sub/path",
 		},
 		{
+			name:     "explicit characters are encoded",
+			input:    "pkg:type/%3F%40%23space/name@version?key=value#sub/path",
+			expected: "pkg:type/%3F%40%23space/name@version?key=value#sub/path",
+		},
+		{
+			name:     "characters are unencoded where allowed",
+			input:    "pkg:type/%3E%41%22space/name@version?key=value#sub/path",
+			expected: "pkg:type/>A\"space/name@version?key=value#sub/path",
+		},
+		{
 			name:     "pre-encoded namespace segment is unchanged",
 			input:    "pkg:type/name/spac%20e/name@version?key=value#sub/path",
 			expected: "pkg:type/name/spac%20e/name@version?key=value#sub/path",
@@ -374,6 +384,7 @@ func TestEncoding(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if tc.expected != got.ToString() {
 				t.Fatalf("expected %s to parse as %s but got %s", tc.input, tc.expected, got.ToString())
 			}
