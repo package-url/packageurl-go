@@ -82,13 +82,15 @@ var (
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
-	// TypeOCI is a pkg:oci purl
+	// TypeOCI is a pkg:oci purl.
 	TypeOCI = "oci"
+	// TypePub is a pkg:pub purl.
+	TypePub = "pub"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
-	// TypeSwift is pkg:swift purl
+	// TypeSwift is pkg:swift purl.
 	TypeSwift = "swift"
 )
 
