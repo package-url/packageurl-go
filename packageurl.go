@@ -292,7 +292,12 @@ func FromString(purl string) (PackageURL, error) {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
 		version = v
-		name = name[:atIndex]
+
+		unecapeName, err := url.PathUnescape(name[:atIndex])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
+		}
+		name = unecapeName
 	}
 	var namespaces []string
 
