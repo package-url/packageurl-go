@@ -64,6 +64,8 @@ var (
 	TypeDebian = "deb"
 	// TypeDocker is a pkg:docker purl.
 	TypeDocker = "docker"
+	// TypeDotnet is a pkg:dotnet purl.
+	TypeDotnet = "dotnet"
 	// TypeGem is a pkg:gem purl.
 	TypeGem = "gem"
 	// TypeGeneric is a pkg:generic purl.
