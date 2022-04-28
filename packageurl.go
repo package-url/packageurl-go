@@ -181,7 +181,8 @@ func (p *PackageURL) ToString() string {
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	purl = purl + url.PathEscape(p.Name)
+	// Use url.QueryEscape instead of PathEscape, as it handles @ signs
+	purl = purl + url.QueryEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
@@ -292,7 +293,12 @@ func FromString(purl string) (PackageURL, error) {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
 		version = v
-		name = name[:atIndex]
+
+		unecapeName, err := url.PathUnescape(name[:atIndex])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
+		}
+		name = unecapeName
 	}
 	var namespaces []string
 
