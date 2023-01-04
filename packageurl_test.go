@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-package packageurl_test
+package packageurl
 
 import (
 	"encoding/json"
@@ -29,8 +29,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/anchore/packageurl-go"
 )
 
 type TestFixture struct {
@@ -107,12 +105,12 @@ func (m *OrderedMap) UnmarshalJSON(bytes []byte) error {
 }
 
 // Qualifiers converts the TestFixture.QualifierMap field to an object of type
-// packageurl.Qualifiers.
-func (t TestFixture) Qualifiers() packageurl.Qualifiers {
-	q := packageurl.Qualifiers{}
+// Qualifiers.
+func (t TestFixture) Qualifiers() Qualifiers {
+	q := Qualifiers{}
 
 	for _, key := range t.QualifierMap.OrderedKeys {
-		q = append(q, packageurl.Qualifier{Key: key, Value: t.QualifierMap.Map[key]})
+		q = append(q, Qualifier{Key: key, Value: t.QualifierMap.Map[key]})
 	}
 
 	return q
@@ -136,7 +134,7 @@ func TestFromStringExamples(t *testing.T) {
 	// Use FromString on each item in the test set
 	for _, tc := range testData {
 		// Should parse without issue
-		p, err := packageurl.FromString(tc.Purl)
+		p, err := FromString(tc.Purl)
 		if tc.IsInvalid == false {
 			if err != nil {
 				t.Logf("%s failed: %s", tc.Description, err)
@@ -198,7 +196,7 @@ func TestToStringExamples(t *testing.T) {
 		if tc.IsInvalid == true {
 			continue
 		}
-		instance := packageurl.NewPackageURL(
+		instance := NewPackageURL(
 			tc.PackageType, tc.Namespace, tc.Name,
 			tc.Version, tc.Qualifiers(), tc.Subpath)
 		result := instance.ToString()
@@ -206,8 +204,8 @@ func TestToStringExamples(t *testing.T) {
 		// NOTE: We create a purl with ToString and then load into a PackageURL
 		//       because qualifiers may not be in any order. By reparsing back
 		//       we can ensure the data transfers between string and instance form.
-		canonical, _ := packageurl.FromString(tc.CanonicalPurl)
-		toTest, _ := packageurl.FromString(result)
+		canonical, _ := FromString(tc.CanonicalPurl)
+		toTest, _ := FromString(result)
 		// If the two results don't equal then the ToString failed
 		if !reflect.DeepEqual(toTest, canonical) {
 			t.Logf("%s failed: %s != %s", tc.Description, result, tc.CanonicalPurl)
@@ -236,7 +234,7 @@ func TestStringer(t *testing.T) {
 		if tc.IsInvalid == true {
 			continue
 		}
-		purlPtr := packageurl.NewPackageURL(
+		purlPtr := NewPackageURL(
 			tc.PackageType, tc.Namespace, tc.Name,
 			tc.Version, tc.Qualifiers(), tc.Subpath)
 		purlValue := *purlPtr
@@ -261,30 +259,30 @@ func TestStringer(t *testing.T) {
 func TestQualifiersMapConversion(t *testing.T) {
 	tests := []struct {
 		kvMap      map[string]string
-		qualifiers packageurl.Qualifiers
+		qualifiers Qualifiers
 	}{
 		{
 			kvMap:      map[string]string{},
-			qualifiers: packageurl.Qualifiers{},
+			qualifiers: Qualifiers{},
 		},
 		{
 			kvMap: map[string]string{"arch": "amd64"},
-			qualifiers: packageurl.Qualifiers{
-				packageurl.Qualifier{Key: "arch", Value: "amd64"},
+			qualifiers: Qualifiers{
+				Qualifier{Key: "arch", Value: "amd64"},
 			},
 		},
 		{
 			kvMap: map[string]string{"arch": "amd64", "os": "linux"},
-			qualifiers: packageurl.Qualifiers{
-				packageurl.Qualifier{Key: "arch", Value: "amd64"},
-				packageurl.Qualifier{Key: "os", Value: "linux"},
+			qualifiers: Qualifiers{
+				Qualifier{Key: "arch", Value: "amd64"},
+				Qualifier{Key: "os", Value: "linux"},
 			},
 		},
 	}
 
 	for _, test := range tests {
 		// map -> Qualifiers
-		got := packageurl.QualifiersFromMap(test.kvMap)
+		got := QualifiersFromMap(test.kvMap)
 		if !reflect.DeepEqual(got, test.qualifiers) {
 			t.Logf("map -> qualifiers conversion failed: got: %#v, wanted: %#v", got, test.qualifiers)
 			t.Fail()
@@ -380,7 +378,7 @@ func TestEncoding(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := packageurl.FromString(tc.input)
+			got, err := FromString(tc.input)
 			if err != nil {
 				t.Fatal(err)
 			}
