@@ -1,8 +1,10 @@
 .PHONY: test clean lint
 
-test:
-	curl -L https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
+test: testdata/test-suite-data.json
 	go test -v -cover ./...
+
+testdata/test-suite-data.json:
+	curl -L https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
 
 clean:
 	find . -name "test-suite-data.json" | xargs rm -f
