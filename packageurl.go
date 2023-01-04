@@ -188,6 +188,7 @@ func (p *PackageURL) ToString() string {
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
+	// Use pathEscape instead of PathEscape, as it handles @ signs
 	purl = purl + pathEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
