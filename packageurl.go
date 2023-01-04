@@ -30,6 +30,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -63,6 +64,8 @@ var (
 	TypeDebian = "deb"
 	// TypeDocker is a pkg:docker purl.
 	TypeDocker = "docker"
+	// TypeDotnet is a pkg:dotnet purl.
+	TypeDotnet = "dotnet"
 	// TypeGem is a pkg:gem purl.
 	TypeGem = "gem"
 	// TypeGeneric is a pkg:generic purl.
@@ -81,13 +84,15 @@ var (
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
-	// TypeOCI is a pkg:oci purl
+	// TypeOCI is a pkg:oci purl.
 	TypeOCI = "oci"
+	// TypePub is a pkg:pub purl.
+	TypePub = "pub"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
-	// TypeSwift is pkg:swift purl
+	// TypeSwift is pkg:swift purl.
 	TypeSwift = "swift"
 )
 
@@ -99,7 +104,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, pathEscape(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -176,17 +181,17 @@ func (p *PackageURL) ToString() string {
 	if p.Namespace != "" {
 		var ns []string
 		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.PathEscape(item))
+			ns = append(ns, pathEscape(item))
 		}
 		purl = purl + strings.Join(ns, "/") + "/"
 	}
 	// The name is always required and must be a percent-encoded string
-	// Use url.QueryEscape instead of PathEscape, as it handles @ signs
-	purl = purl + url.QueryEscape(p.Name)
+	// Use custom pathEscape instead of PathEscape, as it handles @ signs
+	purl = purl + pathEscape(p.Name)
 	// If a version is provided, add it after the at symbol
 	if p.Version != "" {
 		// A name must be a percent-encoded string
-		purl = purl + "@" + url.PathEscape(p.Version)
+		purl = purl + "@" + pathEscape(p.Version)
 	}
 
 	// Iterate over qualifiers and make groups of key=value
@@ -202,7 +207,7 @@ func (p *PackageURL) ToString() string {
 	if p.Subpath != "" {
 		path := []string{}
 		for _, item := range strings.Split(p.Subpath, "/") {
-			path = append(path, url.PathEscape(item))
+			path = append(path, pathEscape(item))
 		}
 		purl = purl + "#" + strings.Join(path, "/")
 	}
@@ -344,7 +349,7 @@ func FromString(purl string) (PackageURL, error) {
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustNamespace(purlType, ns string) string {
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeRPM:
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeRPM:
 		return strings.ToLower(ns)
 	}
 	return ns
@@ -354,7 +359,7 @@ func typeAdjustNamespace(purlType, ns string) string {
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustName(purlType, name string) string {
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM:
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
@@ -365,6 +370,36 @@ func typeAdjustName(purlType, name string) string {
 // validQualifierKey validates a qualifierKey against our QualifierKeyPattern.
 func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
+}
+
+// pathEscape Make any purl type-specific adjustments to the url encoding.
+// See https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst#character-encoding
+func pathEscape(s string) string {
+	escapeCount := 0
+	for _, c := range s {
+		switch {
+		case c == '@' || c == '?' || c == '#' || c == ' ':
+			escapeCount += 1
+		case c > unicode.MaxASCII:
+			escapeCount += 2
+		}
+	}
+	if escapeCount == 0 {
+		return s
+	}
+	var t strings.Builder
+	t.Grow(len(s) + (escapeCount * 3))
+	for _, c := range s {
+		switch {
+		case c == '@':
+			t.WriteString("%40")
+		case c == '?' || c == '#' || c == ' ' || c > unicode.MaxASCII:
+			t.WriteString(url.PathEscape(string(c)))
+		default:
+			t.WriteRune(c)
+		}
+	}
+	return t.String()
 }
 
 // validCustomRules evaluates additional rules for each package url type, as specified in the package-url specification.
