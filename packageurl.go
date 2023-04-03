@@ -45,6 +45,10 @@ var (
 // special treatment during parsing.
 // https://github.com/package-url/purl-spec#known-purl-types
 var (
+	// TypeAlpm is a pkg:alpm purl.
+	TypeAlpm = "alpm"
+	// TypeApk is a pkg:apk purl.
+	TypeApk = "apk"
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
 	// TypeCocoapods is a pkg:cocoapods purl.
@@ -81,12 +85,16 @@ var (
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
+	// TypeQPKG is a pkg:qpkg purl.
+	TypeQpkg = "qpkg"
 	// TypeOCI is a pkg:oci purl
 	TypeOCI = "oci"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
+	// TypeSWID is pkg:swid purl
+	TypeSWID = "swid"
 	// TypeSwift is pkg:swift purl
 	TypeSwift = "swift"
 	// TypeHuggingface is pkg:huggingface purl.
@@ -348,7 +356,16 @@ func FromString(purl string) (PackageURL, error) {
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustNamespace(purlType, ns string) string {
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeRPM, TypeComposer:
+	case TypeAlpm,
+		TypeApk,
+		TypeBitbucket,
+		TypeComposer,
+		TypeDebian,
+		TypeGithub,
+		TypeGolang,
+		TypeNPM,
+		TypeRPM,
+		TypeQpkg:
 		return strings.ToLower(ns)
 	}
 	return ns
@@ -359,7 +376,14 @@ func typeAdjustNamespace(purlType, ns string) string {
 func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 	quals := qualifiers.Map()
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeComposer:
+	case TypeAlpm,
+		TypeApk,
+		TypeBitbucket,
+		TypeComposer,
+		TypeDebian,
+		TypeGithub,
+		TypeGolang,
+		TypeNPM:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
