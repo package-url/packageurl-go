@@ -550,5 +550,17 @@
     "qualifiers": null,
     "subpath": null,
     "is_invalid": false
+  },
+  {
+    "description": "valid julia purl",
+    "purl": "pkg:julia/Dates@1.9.0",
+    "canonical_purl": "pkg:julia/Dates@1.9.0",
+    "type": "julia",
+    "namespace": "",
+    "name": "Dates",
+    "version": "1.9.0",
+    "qualifiers": null,
+    "subpath": null,
+    "is_invalid": false
   }
 ]
