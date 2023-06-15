@@ -89,6 +89,8 @@ var (
 	TypeRPM = "rpm"
 	// TypeSwift is pkg:swift purl
 	TypeSwift = "swift"
+	// TypeHuggingface is pkg:huggingface purl.
+	TypeHuggingface = "huggingface"
 )
 
 // Qualifier represents a single key=value qualifier in the package url
@@ -292,7 +294,7 @@ func FromString(purl string) (PackageURL, error) {
 		if err != nil {
 			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
 		}
-		version = v
+		version = typeAdjustVersion(purlType, v)
 
 		unecapeName, err := url.PathUnescape(name[:atIndex])
 		if err != nil {
@@ -358,6 +360,16 @@ func typeAdjustName(purlType, name string) string {
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
 	}
 	return name
+}
+
+// Make any purl type-specific adjustments to the parsed version.
+// See https://github.com/package-url/purl-spec#known-purl-types
+func typeAdjustVersion(purlType, version string) string {
+	switch purlType {
+	case TypeHuggingface:
+		return strings.ToLower(version)
+	}
+	return version
 }
 
 // validQualifierKey validates a qualifierKey against our QualifierKeyPattern.
