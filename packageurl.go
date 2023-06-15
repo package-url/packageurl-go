@@ -91,6 +91,8 @@ var (
 	TypeSwift = "swift"
 	// TypeHuggingface is pkg:huggingface purl.
 	TypeHuggingface = "huggingface"
+	// TypeMLflow is pkg:mlflow purl.
+	TypeMLFlow = "mlflow"
 )
 
 // Qualifier represents a single key=value qualifier in the package url
@@ -285,7 +287,7 @@ func FromString(purl string) (PackageURL, error) {
 	remainder = nextSplit[1]
 
 	index = strings.LastIndex(remainder, "/")
-	name := typeAdjustName(purlType, remainder[index+1:])
+	name := typeAdjustName(purlType, remainder[index+1:], qualifiers)
 	version := ""
 
 	atIndex := strings.Index(name, "@")
@@ -352,12 +354,15 @@ func typeAdjustNamespace(purlType, ns string) string {
 
 // Make any purl type-specific adjustments to the parsed name.
 // See https://github.com/package-url/purl-spec#known-purl-types
-func typeAdjustName(purlType, name string) string {
+func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
+	quals := qualifiers.Map()
 	switch purlType {
 	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
+	case TypeMLFlow:
+		return adjustMlflowName(name, quals)
 	}
 	return name
 }
@@ -370,6 +375,25 @@ func typeAdjustVersion(purlType, version string) string {
 		return strings.ToLower(version)
 	}
 	return version
+}
+
+// https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#mlflow
+func adjustMlflowName(name string, qualifiers map[string]string) string {
+	if repo, ok := qualifiers["repository_url"]; ok {
+		if strings.Contains(repo, "azureml") {
+			// Azure ML is case-sensitive and must be kept as-is
+			return name
+		} else if strings.Contains(repo, "databricks") {
+			// Databricks is case-insensitive and must be lowercased
+			return strings.ToLower(name)
+		} else {
+			// Unknown repository type, keep as-is
+			return name
+		}
+	} else {
+		// No repository qualifier given, keep as-is
+		return name
+	}
 }
 
 // validQualifierKey validates a qualifierKey against our QualifierKeyPattern.
