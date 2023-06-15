@@ -346,7 +346,7 @@ func FromString(purl string) (PackageURL, error) {
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustNamespace(purlType, ns string) string {
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeRPM:
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeRPM, TypeComposer:
 		return strings.ToLower(ns)
 	}
 	return ns
@@ -357,7 +357,7 @@ func typeAdjustNamespace(purlType, ns string) string {
 func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 	quals := qualifiers.Map()
 	switch purlType {
-	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM:
+	case TypeBitbucket, TypeDebian, TypeGithub, TypeGolang, TypeNPM, TypeComposer:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
