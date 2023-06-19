@@ -14,8 +14,6 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Download test data
-        run: curl -L https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
       - name: Test go fmt
         run: test -z $(go fmt ./...)
       - name: Golangci-lint
