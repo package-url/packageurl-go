@@ -93,6 +93,8 @@ var (
 	TypeHuggingface = "huggingface"
 	// TypeMLflow is pkg:mlflow purl.
 	TypeMLFlow = "mlflow"
+	// TypeJulia is a pkg:julia purl
+	TypeJulia = "julia"
 )
 
 // Qualifier represents a single key=value qualifier in the package url
