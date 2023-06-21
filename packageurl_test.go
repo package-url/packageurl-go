@@ -60,7 +60,7 @@ var qualifiersMapPattern = regexp.MustCompile(`^\{.*\}$`)
 // UnmarshalJSON unmarshals the qualifiers field for a TestFixture. The
 // qualifiers field is given as a json object such as:
 //
-//        "qualifiers": {"arch": "i386", "distro": "fedora-25"}
+//	"qualifiers": {"arch": "i386", "distro": "fedora-25"}
 //
 // This function performs in-order parsing of these values into an OrderedMap to
 // preserve items in order of declaration. Note that parsing as a
@@ -199,8 +199,9 @@ func TestToStringExamples(t *testing.T) {
 			continue
 		}
 		instance := packageurl.NewPackageURL(
-			tc.PackageType, tc.Namespace, tc.Name,
-			tc.Version, tc.Qualifiers(), tc.Subpath)
+			tc.PackageType, tc.Namespace, tc.Name, tc.Version,
+			// Use QualifiersFromMap so that the qualifiers have a defined order, which is needed for string comparisons
+			packageurl.QualifiersFromMap(tc.Qualifiers().Map()), tc.Subpath)
 		result := instance.ToString()
 
 		// NOTE: We create a purl with ToString and then load into a PackageURL
