@@ -257,6 +257,9 @@ func FromString(purl string) (PackageURL, error) {
 		qualifier := remainder[index+1:]
 		for _, item := range strings.Split(qualifier, "&") {
 			kv := strings.Split(item, "=")
+			if len(kv) != 2 {
+				return PackageURL{}, fmt.Errorf("wanted 2 kv segments, got %d", len(kv))
+			}
 			key := strings.ToLower(kv[0])
 			key, err := url.PathUnescape(key)
 			if err != nil {

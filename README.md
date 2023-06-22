@@ -72,3 +72,19 @@ PASS
         github.com/package-url/packageurl-go    coverage: 90.7% of statements
 ok      github.com/package-url/packageurl-go    0.004s  coverage: 90.7% of statements
 ```
+
+## Fuzzing
+
+Fuzzing is done with standard [Go fuzzing](https://go.dev/doc/fuzz/), introduced in Go 1.18.
+
+Fuzz tests check for inputs that cause `FromString` to panic.
+
+Using `make fuzz` will run fuzz tests for one minute.
+
+To run fuzz tests longer:
+
+```
+go test -fuzztime=60m -fuzz .
+```
+
+Or omit `-fuzztime` entirely to run indefinitely.

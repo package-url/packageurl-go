@@ -31,3 +31,6 @@ jobs:
         run: |
           GO111MODULE=off go get github.com/mattn/goveralls
           $(go env GOPATH)/bin/goveralls -coverprofile=profile.cov -service=github
+
+      - name: Fuzz tests
+        run: make fuzz
