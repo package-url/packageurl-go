@@ -24,7 +24,7 @@ package packageurl_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -122,7 +122,7 @@ func (t TestFixture) Qualifiers() packageurl.Qualifiers {
 // results.
 func TestFromStringExamples(t *testing.T) {
 	// Read the json file
-	data, err := ioutil.ReadFile("testdata/test-suite-data.json")
+	data, err := os.ReadFile("testdata/test-suite-data.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestFromStringExamples(t *testing.T) {
 // the expected format.
 func TestToStringExamples(t *testing.T) {
 	// Read the json file
-	data, err := ioutil.ReadFile("testdata/test-suite-data.json")
+	data, err := os.ReadFile("testdata/test-suite-data.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestToStringExamples(t *testing.T) {
 // equivalent with the ToString method.
 func TestStringer(t *testing.T) {
 	// Read the json file
-	data, err := ioutil.ReadFile("testdata/test-suite-data.json")
+	data, err := os.ReadFile("testdata/test-suite-data.json")
 	if err != nil {
 		t.Fatal(err)
 	}
