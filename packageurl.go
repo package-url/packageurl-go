@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -120,6 +121,15 @@ func (q Qualifier) String() string {
 // in the package URL.
 type Qualifiers []Qualifier
 
+// urlQuery returns a raw URL query with all the qualifiers as keys + values.
+func (q Qualifiers) urlQuery() (rawQuery string) {
+	v := make(url.Values)
+	for _, qq := range q {
+		v.Add(qq.Key, qq.Value)
+	}
+	return v.Encode()
+}
+
 // QualifiersFromMap constructs a Qualifiers slice from a string map. To get a
 // deterministic qualifier order (despite maps not providing any iteration order
 // guarantees) the returned Qualifiers are sorted in increasing order of key.
@@ -184,39 +194,20 @@ func NewPackageURL(purlType, namespace, name, version string,
 // ToString returns the human-readable instance of the PackageURL structure.
 // This is the literal purl as defined by the spec.
 func (p *PackageURL) ToString() string {
-	// Start with the type and a colon
-	purl := fmt.Sprintf("pkg:%s/", p.Type)
-	// Add namespaces if provided
-	if p.Namespace != "" {
-		var ns []string
-		for _, item := range strings.Split(p.Namespace, "/") {
-			ns = append(ns, url.QueryEscape(item))
-		}
-		purl = purl + strings.Join(ns, "/") + "/"
-	}
-	// The name is always required and must be a percent-encoded string
-	// Use url.QueryEscape instead of PathEscape, as it handles @ signs
-	purl = purl + url.QueryEscape(p.Name)
-	// If a version is provided, add it after the at symbol
-	if p.Version != "" {
-		// A name must be a percent-encoded string
-		purl = purl + "@" + url.PathEscape(p.Version)
+	u := &url.URL{
+		Scheme:   "pkg",
+		RawQuery: p.Qualifiers.urlQuery(),
+		Fragment: p.Subpath,
 	}
 
-	// Iterate over qualifiers and make groups of key=value
-	var qualifiers []string
-	for _, q := range p.Qualifiers {
-		qualifiers = append(qualifiers, q.String())
-	}
-	// If there are one or more key=value pairs, append on the package url
-	if len(qualifiers) != 0 {
-		purl = purl + "?" + strings.Join(qualifiers, "&")
-	}
-	// Add a subpath if available
-	if p.Subpath != "" {
-		purl = purl + "#" + p.Subpath
-	}
-	return purl
+	// we use JoinPath and EscapePath as the behavior for "/" is only correct with that.
+	// We don't want to escape "/", but want to escape all other characters that are necessary.
+	u = u.JoinPath(p.Type, p.Namespace, strings.Join([]string{p.Name, p.Version}, "@"))
+	// write the actual path into the "Opaque" block, so that the generated string at the end is
+	// pkg:<path> and not pkg://<path>.
+	u.Opaque, u.Path = u.EscapedPath(), ""
+
+	return u.String()
 }
 
 func (p PackageURL) String() string {
@@ -225,134 +216,117 @@ func (p PackageURL) String() string {
 
 // FromString parses a valid package url string into a PackageURL structure
 func FromString(purl string) (PackageURL, error) {
-	initialIndex := strings.Index(purl, "#")
-	// Start with purl being stored in the remainder
-	remainder := purl
-	substring := ""
-	if initialIndex != -1 {
-		initialSplit := strings.SplitN(purl, "#", 2)
-		remainder = initialSplit[0]
-		rightSide := initialSplit[1]
-		rightSide = strings.TrimLeft(rightSide, "/")
-		rightSide = strings.TrimRight(rightSide, "/")
-		var rightSides []string
-
-		for _, item := range strings.Split(rightSide, "/") {
-			item = strings.Replace(item, ".", "", -1)
-			item = strings.Replace(item, "..", "", -1)
-			if item != "" {
-				i, err := url.PathUnescape(item)
-				if err != nil {
-					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
-				}
-				rightSides = append(rightSides, i)
-			}
-		}
-		substring = strings.Join(rightSides, "/")
-	}
-	qualifiers := Qualifiers{}
-	index := strings.LastIndex(remainder, "?")
-	// If we don't have anything to split then return an empty result
-	if index != -1 {
-		qualifier := remainder[index+1:]
-		for _, item := range strings.Split(qualifier, "&") {
-			kv := strings.Split(item, "=")
-			if len(kv) != 2 {
-				return PackageURL{}, fmt.Errorf("wanted 2 kv segments, got %d", len(kv))
-			}
-			key := strings.ToLower(kv[0])
-			key, err := url.PathUnescape(key)
-			if err != nil {
-				return PackageURL{}, fmt.Errorf("failed to unescape qualifier key: %s", err)
-			}
-			if !validQualifierKey(key) {
-				return PackageURL{}, fmt.Errorf("invalid qualifier key: '%s'", key)
-			}
-			// TODO
-			//  - If the `key` is `checksums`, split the `value` on ',' to create
-			//    a list of `checksums`
-			if kv[1] == "" {
-				continue
-			}
-			value, err := url.PathUnescape(kv[1])
-			if err != nil {
-				return PackageURL{}, fmt.Errorf("failed to unescape qualifier value: %s", err)
-			}
-			qualifiers = append(qualifiers, Qualifier{key, value})
-		}
-		remainder = remainder[:index]
+	u, err := url.Parse(purl)
+	if err != nil {
+		return PackageURL{}, fmt.Errorf("failed to parse as URL: %w", err)
 	}
 
-	nextSplit := strings.SplitN(remainder, ":", 2)
-	if len(nextSplit) != 2 || nextSplit[0] != "pkg" {
-		return PackageURL{}, errors.New("scheme is missing")
-	}
-	// leading slashes after pkg: are to be ignored (pkg://maven is
-	// equivalent to pkg:maven)
-	remainder = strings.TrimLeft(nextSplit[1], "/")
-
-	nextSplit = strings.SplitN(remainder, "/", 2)
-	if len(nextSplit) != 2 {
-		return PackageURL{}, errors.New("type is missing")
-	}
-	// purl type is case-insensitive, canonical form is lower-case
-	purlType := strings.ToLower(nextSplit[0])
-	remainder = nextSplit[1]
-
-	index = strings.LastIndex(remainder, "/")
-	name := typeAdjustName(purlType, remainder[index+1:], qualifiers)
-	version := ""
-
-	atIndex := strings.Index(name, "@")
-	if atIndex != -1 {
-		v, err := url.PathUnescape(name[atIndex+1:])
-		if err != nil {
-			return PackageURL{}, fmt.Errorf("failed to unescape purl version: %s", err)
-		}
-		version = typeAdjustVersion(purlType, v)
-
-		unecapeName, err := url.PathUnescape(name[:atIndex])
-		if err != nil {
-			return PackageURL{}, fmt.Errorf("failed to unescape purl name: %s", err)
-		}
-		name = unecapeName
-	}
-	var namespaces []string
-
-	if index != -1 {
-		remainder = remainder[:index]
-
-		for _, item := range strings.Split(remainder, "/") {
-			if item != "" {
-				unescaped, err := url.PathUnescape(item)
-				if err != nil {
-					return PackageURL{}, fmt.Errorf("failed to unescape path: %s", err)
-				}
-				namespaces = append(namespaces, unescaped)
-			}
-		}
-	}
-	namespace := strings.Join(namespaces, "/")
-	namespace = typeAdjustNamespace(purlType, namespace)
-
-	// Fail if name is empty at this point
-	if name == "" {
-		return PackageURL{}, errors.New("name is required")
+	if u.Scheme != "pkg" {
+		return PackageURL{}, fmt.Errorf("purl scheme is not \"pkg\": %q", u.Scheme)
 	}
 
-	err := validCustomRules(purlType, name, namespace, version, qualifiers)
+	p := u.Opaque
+	// if a purl starts with pkg:/ or even pkg://, we need to fall back to host + path.
+	if p == "" {
+		p = strings.TrimPrefix(path.Join(u.Host, u.Path), "/")
+	}
+
+	typ, p, ok := strings.Cut(p, "/")
+	if !ok {
+		return PackageURL{}, fmt.Errorf("purl is missing type or name")
+	}
+	typ = strings.ToLower(typ)
+
+	qualifiers, err := parseQualifiers(u.RawQuery)
+	if err != nil {
+		return PackageURL{}, fmt.Errorf("invalid qualifiers: %w", err)
+	}
+	namespace, name, version, err := separateNamespaceNameVersion(p)
 	if err != nil {
 		return PackageURL{}, err
 	}
 
-	return PackageURL{
-		Type:       purlType,
-		Namespace:  namespace,
-		Name:       name,
-		Version:    version,
+	pURL := PackageURL{
 		Qualifiers: qualifiers,
-		Subpath:    substring,
-	}, nil
+		Type:       typ,
+		Namespace:  typeAdjustNamespace(typ, namespace),
+		Name:       typeAdjustName(typ, name, qualifiers),
+		Version:    typeAdjustVersion(typ, version),
+		Subpath:    strings.Trim(u.Fragment, "/"),
+	}
+
+	return pURL, validCustomRules(pURL)
+}
+
+func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {
+	namespaceSep := strings.LastIndex(path, "/")
+	if namespaceSep != -1 {
+		ns, err = url.PathUnescape(path[:namespaceSep])
+		if err != nil {
+			return "", "", "", fmt.Errorf("error unescaping namespace: %w", err)
+		}
+
+		path = path[namespaceSep+1:]
+	}
+
+	v := strings.Split(path, "@")
+	name, err = url.PathUnescape(v[0])
+	if err != nil {
+		return "", "", "", fmt.Errorf("error unescaping name: %w", err)
+	}
+
+	if name == "" {
+		return "", "", "", fmt.Errorf("purl is missing name")
+	}
+
+	if len(v) > 1 {
+		version, err = url.PathUnescape(v[1])
+		if err != nil {
+			return "", "", "", fmt.Errorf("error unescaping version: %w", err)
+		}
+	}
+
+	return ns, name, version, nil
+}
+
+func parseQualifiers(rawQuery string) (Qualifiers, error) {
+	// we need to parse the qualifiers ourselves and cannot rely on the `url.Query` type because
+	// that uses a map, meaning it's unordered. We want to keep the order of the qualifiers, so this
+	// function re-implements the `url.parseQuery` function based on our `Qualifier` type. Most of
+	// the code here is taken from `url.parseQuery`.
+	q := Qualifiers{}
+	for rawQuery != "" {
+		var key string
+		key, rawQuery, _ = strings.Cut(rawQuery, "&")
+		if strings.Contains(key, ";") {
+			return nil, fmt.Errorf("invalid semicolon separator in query")
+		}
+		if key == "" {
+			continue
+		}
+		key, value, _ := strings.Cut(key, "=")
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return nil, fmt.Errorf("error unescaping qualifier key %q", key)
+		}
+
+		if !validQualifierKey(key) {
+			return nil, fmt.Errorf("invalid qualifier key: '%s'", key)
+		}
+
+		value, err = url.QueryUnescape(value)
+		if err != nil {
+			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
+		}
+
+		q = append(q, Qualifier{
+			Key: strings.ToLower(key),
+			// only the first character needs  to be lowercase. Note that pURL is always UTF8, so we
+			// don't need to care about unicode here.
+			Value: strings.ToLower(value[:1]) + value[1:],
+		})
+	}
+	return q, nil
 }
 
 // Make any purl type-specific adjustments to the parsed namespace.
@@ -432,11 +406,11 @@ func validQualifierKey(key string) bool {
 
 // validCustomRules evaluates additional rules for each package url type, as specified in the package-url specification.
 // On success, it returns nil. On failure, a descriptive error will be returned.
-func validCustomRules(purlType, name, ns, version string, qualifiers Qualifiers) error {
-	q := qualifiers.Map()
-	switch purlType {
+func validCustomRules(p PackageURL) error {
+	q := p.Qualifiers.Map()
+	switch p.Type {
 	case TypeConan:
-		if ns != "" {
+		if p.Namespace != "" {
 			if val, ok := q["channel"]; ok {
 				if val == "" {
 					return errors.New("the qualifier channel must be not empty if namespace is present")
@@ -452,14 +426,14 @@ func validCustomRules(purlType, name, ns, version string, qualifiers Qualifiers)
 			}
 		}
 	case TypeSwift:
-		if ns == "" {
+		if p.Namespace == "" {
 			return errors.New("namespace is required")
 		}
-		if version == "" {
+		if p.Version == "" {
 			return errors.New("version is required")
 		}
 	case TypeCran:
-		if version == "" {
+		if p.Version == "" {
 			return errors.New("version is required")
 		}
 	}

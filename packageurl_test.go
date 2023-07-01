@@ -55,7 +55,7 @@ type OrderedMap struct {
 
 // qualifiersMapPattern is used to parse the TestFixture "qualifiers" field to
 // ensure that it's a json object.
-var qualifiersMapPattern = regexp.MustCompile(`^\{.*\}$`)
+var qualifiersMapPattern = regexp.MustCompile(`(?ms)^\{.*\}$`)
 
 // UnmarshalJSON unmarshals the qualifiers field for a TestFixture. The
 // qualifiers field is given as a json object such as:
