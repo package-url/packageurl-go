@@ -200,9 +200,14 @@ func (p *PackageURL) ToString() string {
 		Fragment: p.Subpath,
 	}
 
-	// we use JoinPath and EscapePath as the behavior for "/" is only correct with that.
+	nameWithVersion := url.PathEscape(p.Name)
+	if p.Version != "" {
+		nameWithVersion += "@" + p.Version
+	}
+
+	// we use JoinPath and EscapedPath as the behavior for "/" is only correct with that.
 	// We don't want to escape "/", but want to escape all other characters that are necessary.
-	u = u.JoinPath(p.Type, p.Namespace, strings.Join([]string{p.Name, p.Version}, "@"))
+	u = u.JoinPath(p.Type, p.Namespace, nameWithVersion)
 	// write the actual path into the "Opaque" block, so that the generated string at the end is
 	// pkg:<path> and not pkg://<path>.
 	u.Opaque, u.Path = u.EscapedPath(), ""
@@ -259,31 +264,33 @@ func FromString(purl string) (PackageURL, error) {
 }
 
 func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {
-	namespaceSep := strings.LastIndex(path, "/")
-	if namespaceSep != -1 {
-		ns, err = url.PathUnescape(path[:namespaceSep])
+	name = path
+
+	if namespaceSep := strings.LastIndex(name, "/"); namespaceSep != -1 {
+		ns, name = name[:namespaceSep], name[namespaceSep+1:]
+
+		ns, err = url.PathUnescape(ns)
 		if err != nil {
 			return "", "", "", fmt.Errorf("error unescaping namespace: %w", err)
 		}
-
-		path = path[namespaceSep+1:]
 	}
 
-	v := strings.Split(path, "@")
-	name, err = url.PathUnescape(v[0])
+	if versionSep := strings.LastIndex(name, "@"); versionSep != -1 {
+		name, version = name[:versionSep], name[versionSep+1:]
+
+		version, err = url.PathUnescape(version)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error unescaping version: %w", err)
+		}
+	}
+
+	name, err = url.PathUnescape(name)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error unescaping name: %w", err)
 	}
 
 	if name == "" {
 		return "", "", "", fmt.Errorf("purl is missing name")
-	}
-
-	if len(v) > 1 {
-		version, err = url.PathUnescape(v[1])
-		if err != nil {
-			return "", "", "", fmt.Errorf("error unescaping version: %w", err)
-		}
 	}
 
 	return ns, name, version, nil

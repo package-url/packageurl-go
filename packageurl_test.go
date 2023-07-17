@@ -297,7 +297,21 @@ func TestQualifiersMapConversion(t *testing.T) {
 			t.Logf("qualifiers -> map conversion failed: got: %#v, wanted: %#v", mp, test.kvMap)
 			t.Fail()
 		}
+	}
+}
 
+func TestNameEscaping(t *testing.T) {
+	testCases := map[string]string{
+		"abc":  "pkg:abc",
+		"ab/c": "pkg:ab%2Fc",
+	}
+	for name, output := range testCases {
+		t.Run(name, func(t *testing.T) {
+			p := &packageurl.PackageURL{Name: name}
+			if s := p.ToString(); s != output {
+				t.Fatalf("wrong escape. expected=%q, got=%q", output, s)
+			}
+		})
 	}
 
 }
