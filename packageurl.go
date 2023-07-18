@@ -200,18 +200,23 @@ func (p *PackageURL) ToString() string {
 		Fragment: p.Subpath,
 	}
 
-	nameWithVersion := url.PathEscape(p.Name)
-	if p.Version != "" {
-		nameWithVersion += "@" + p.Version
+	paths := []string{p.Type}
+	// we need to escape each segment by itself, so that we don't escape "/" in the namespace.
+	for _, segment := range strings.Split(p.Namespace, "/") {
+		if segment == "" {
+			continue
+		}
+		paths = append(paths, escape(segment))
 	}
 
-	// we use JoinPath and EscapedPath as the behavior for "/" is only correct with that.
-	// We don't want to escape "/", but want to escape all other characters that are necessary.
-	u = u.JoinPath(p.Type, p.Namespace, nameWithVersion)
-	// write the actual path into the "Opaque" block, so that the generated string at the end is
-	// pkg:<path> and not pkg://<path>.
-	u.Opaque, u.Path = u.EscapedPath(), ""
+	nameWithVersion := escape(p.Name)
+	if p.Version != "" {
+		nameWithVersion += "@" + escape(p.Version)
+	}
 
+	paths = append(paths, nameWithVersion)
+
+	u.Opaque = strings.Join(paths, "/")
 	return u.String()
 }
 
@@ -261,6 +266,17 @@ func FromString(purl string) (PackageURL, error) {
 	}
 
 	return pURL, validCustomRules(pURL)
+}
+
+// escape the given string in a purl-compatible way.
+func escape(s string) string {
+	// for compatibility with other implementations and the purl-spec, we want to escape all
+	// characters, which is what "QueryEscape" does. The issue with QueryEscape is that it encodes
+	// " " (space) as "+", which is valid in a query, but invalid in a path (see
+	// https://stackoverflow.com/questions/2678551/when-should-space-be-encoded-to-plus-or-20) for
+	// context).
+	// To work around that, we replace the "+" signs with the path-compatible "%20".
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
 func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {

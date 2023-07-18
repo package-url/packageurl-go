@@ -302,12 +302,12 @@ func TestQualifiersMapConversion(t *testing.T) {
 
 func TestNameEscaping(t *testing.T) {
 	testCases := map[string]string{
-		"abc":  "pkg:abc",
-		"ab/c": "pkg:ab%2Fc",
+		"abc":  "pkg:deb/abc",
+		"ab/c": "pkg:deb/ab%2Fc",
 	}
 	for name, output := range testCases {
 		t.Run(name, func(t *testing.T) {
-			p := &packageurl.PackageURL{Name: name}
+			p := &packageurl.PackageURL{Type: "deb", Name: name}
 			if s := p.ToString(); s != output {
 				t.Fatalf("wrong escape. expected=%q, got=%q", output, s)
 			}
