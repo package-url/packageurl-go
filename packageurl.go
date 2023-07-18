@@ -29,7 +29,6 @@ import (
 	"net/url"
 	"path"
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -110,66 +109,7 @@ var (
 	TypeSwift = "swift"
 )
 
-// Qualifier represents a single key=value qualifier in the package url
-type Qualifier struct {
-	Key   string
-	Value string
-}
-
-func (q Qualifier) String() string {
-	// A value must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
-}
-
-// Qualifiers is a slice of key=value pairs, with order preserved as it appears
-// in the package URL.
-type Qualifiers []Qualifier
-
-// urlQuery returns a raw URL query with all the qualifiers as keys + values.
-func (q Qualifiers) urlQuery() (rawQuery string) {
-	v := make(url.Values)
-	for _, qq := range q {
-		v.Add(qq.Key, qq.Value)
-	}
-	return v.Encode()
-}
-
-// QualifiersFromMap constructs a Qualifiers slice from a string map. To get a
-// deterministic qualifier order (despite maps not providing any iteration order
-// guarantees) the returned Qualifiers are sorted in increasing order of key.
-func QualifiersFromMap(mm map[string]string) Qualifiers {
-	q := Qualifiers{}
-
-	for k, v := range mm {
-		q = append(q, Qualifier{Key: k, Value: v})
-	}
-
-	// sort for deterministic qualifier order
-	sort.Slice(q, func(i int, j int) bool { return q[i].Key < q[j].Key })
-
-	return q
-}
-
-// Map converts a Qualifiers struct to a string map.
-func (qq Qualifiers) Map() map[string]string {
-	m := make(map[string]string)
-
-	for i := 0; i < len(qq); i++ {
-		k := qq[i].Key
-		v := qq[i].Value
-		m[k] = v
-	}
-
-	return m
-}
-
-func (qq Qualifiers) String() string {
-	var kvPairs []string
-	for _, q := range qq {
-		kvPairs = append(kvPairs, q.String())
-	}
-	return strings.Join(kvPairs, "&")
-}
+type Qualifiers = url.Values
 
 // PackageURL is the struct representation of the parts that make a package url
 type PackageURL struct {
@@ -200,7 +140,7 @@ func NewPackageURL(purlType, namespace, name, version string,
 func (p *PackageURL) ToString() string {
 	u := &url.URL{
 		Scheme:   "pkg",
-		RawQuery: p.Qualifiers.urlQuery(),
+		RawQuery: p.Qualifiers.Encode(),
 		Fragment: p.Subpath,
 	}
 
@@ -251,10 +191,11 @@ func FromString(purl string) (PackageURL, error) {
 	}
 	typ = strings.ToLower(typ)
 
-	qualifiers, err := parseQualifiers(u.RawQuery)
+	qualifiers, err := getQualifiers(u.RawQuery)
 	if err != nil {
 		return PackageURL{}, fmt.Errorf("invalid qualifiers: %w", err)
 	}
+
 	namespace, name, version, err := separateNamespaceNameVersion(p)
 	if err != nil {
 		return PackageURL{}, err
@@ -281,6 +222,33 @@ func escape(s string) string {
 	// context).
 	// To work around that, we replace the "+" signs with the path-compatible "%20".
 	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
+func getQualifiers(rawQuery string) (url.Values, error) {
+	qualifiers, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse qualifiers: %w", err)
+	}
+
+	for k := range qualifiers {
+		if !validQualifierKey(k) {
+			return nil, fmt.Errorf("invalid qualifier key: %q", k)
+		}
+
+		v := qualifiers.Get(k)
+		// only the first character needs to be lowercased. Note that pURL is alwyas UTF8, so we
+		// don't need to care about unicode here.
+		normalisedValue := strings.ToLower(v[:1]) + v[1:]
+
+		if normalisedKey := strings.ToLower(k); normalisedKey != k {
+			qualifiers.Del(k)
+			qualifiers.Set(normalisedKey, normalisedValue)
+		} else if normalisedValue != v {
+			qualifiers.Set(k, normalisedValue)
+		}
+	}
+
+	return qualifiers, nil
 }
 
 func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {
@@ -316,46 +284,6 @@ func separateNamespaceNameVersion(path string) (ns, name, version string, err er
 	return ns, name, version, nil
 }
 
-func parseQualifiers(rawQuery string) (Qualifiers, error) {
-	// we need to parse the qualifiers ourselves and cannot rely on the `url.Query` type because
-	// that uses a map, meaning it's unordered. We want to keep the order of the qualifiers, so this
-	// function re-implements the `url.parseQuery` function based on our `Qualifier` type. Most of
-	// the code here is taken from `url.parseQuery`.
-	q := Qualifiers{}
-	for rawQuery != "" {
-		var key string
-		key, rawQuery, _ = strings.Cut(rawQuery, "&")
-		if strings.Contains(key, ";") {
-			return nil, fmt.Errorf("invalid semicolon separator in query")
-		}
-		if key == "" {
-			continue
-		}
-		key, value, _ := strings.Cut(key, "=")
-		key, err := url.QueryUnescape(key)
-		if err != nil {
-			return nil, fmt.Errorf("error unescaping qualifier key %q", key)
-		}
-
-		if !validQualifierKey(key) {
-			return nil, fmt.Errorf("invalid qualifier key: '%s'", key)
-		}
-
-		value, err = url.QueryUnescape(value)
-		if err != nil {
-			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
-		}
-
-		q = append(q, Qualifier{
-			Key: strings.ToLower(key),
-			// only the first character needs  to be lowercase. Note that pURL is always UTF8, so we
-			// don't need to care about unicode here.
-			Value: strings.ToLower(value[:1]) + value[1:],
-		})
-	}
-	return q, nil
-}
-
 // Make any purl type-specific adjustments to the parsed namespace.
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustNamespace(purlType, ns string) string {
@@ -378,7 +306,6 @@ func typeAdjustNamespace(purlType, ns string) string {
 // Make any purl type-specific adjustments to the parsed name.
 // See https://github.com/package-url/purl-spec#known-purl-types
 func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
-	quals := qualifiers.Map()
 	switch purlType {
 	case TypeAlpm,
 		TypeApk,
@@ -393,7 +320,7 @@ func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
 	case TypeMLFlow:
-		return adjustMlflowName(name, quals)
+		return adjustMlflowName(name, qualifiers)
 	}
 	return name
 }
@@ -409,20 +336,22 @@ func typeAdjustVersion(purlType, version string) string {
 }
 
 // https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#mlflow
-func adjustMlflowName(name string, qualifiers map[string]string) string {
-	if repo, ok := qualifiers["repository_url"]; ok {
-		if strings.Contains(repo, "azureml") {
-			// Azure ML is case-sensitive and must be kept as-is
-			return name
-		} else if strings.Contains(repo, "databricks") {
-			// Databricks is case-insensitive and must be lowercased
-			return strings.ToLower(name)
-		} else {
-			// Unknown repository type, keep as-is
-			return name
-		}
-	} else {
+func adjustMlflowName(name string, qualifiers Qualifiers) string {
+	switch v := qualifiers.Get("repository_url"); {
+	case v == "":
 		// No repository qualifier given, keep as-is
+		return name
+
+	case strings.Contains(v, "azureml"):
+		// Azure ML is case-sensitive and must be kept as-is
+		return name
+
+	case strings.Contains(v, "databricks"):
+		// Databricks is case-insensitive and must be lowercased
+		return strings.ToLower(name)
+
+	default:
+		// Unknown repository type, keep as-is
 		return name
 	}
 }
@@ -435,24 +364,24 @@ func validQualifierKey(key string) bool {
 // validCustomRules evaluates additional rules for each package url type, as specified in the package-url specification.
 // On success, it returns nil. On failure, a descriptive error will be returned.
 func validCustomRules(p PackageURL) error {
-	q := p.Qualifiers.Map()
+	q := p.Qualifiers
 	switch p.Type {
 	case TypeConan:
-		if p.Namespace != "" {
-			if val, ok := q["channel"]; ok {
-				if val == "" {
-					return errors.New("the qualifier channel must be not empty if namespace is present")
-				}
-			} else {
-				return errors.New("channel qualifier does not exist")
+		switch channelSet, nsSet := q.Has("channel"), p.Namespace != ""; {
+		case nsSet && channelSet:
+			if q.Get("channel") == "" {
+				return errors.New("the qualifier channel must be not empty if namespace is present")
 			}
-		} else {
-			if val, ok := q["channel"]; ok {
-				if val != "" {
-					return errors.New("namespace is required if channel is non empty")
-				}
+
+		case nsSet && !channelSet:
+			return errors.New("channel qualifier does not exist")
+
+		case !nsSet && channelSet:
+			if q.Get("channel") != "" {
+				return errors.New("namespace is required if channel is non empty")
 			}
 		}
+
 	case TypeSwift:
 		if p.Namespace == "" {
 			return errors.New("namespace is required")
