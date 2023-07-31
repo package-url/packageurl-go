@@ -52,6 +52,8 @@ var (
 	TypeApk = "apk"
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
+	// TypeBitnami is a pkg:bitnami purl.
+	TypeBitnami = "bitnami"
 	// TypeCargo is a pkg:cargo purl.
 	TypeCargo = "cargo"
 	// TypeCocoapods is a pkg:cocoapods purl.
@@ -94,6 +96,8 @@ var (
 	TypeNuget = "nuget"
 	// TypeOCI is a pkg:oci purl
 	TypeOCI = "oci"
+	// TypePub is a pkg:pub purl.
+	TypePub = "pub"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
 	// TypeQPKG is a pkg:qpkg purl.
@@ -363,6 +367,7 @@ func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 	case TypeAlpm,
 		TypeApk,
 		TypeBitbucket,
+		TypeBitnami,
 		TypeComposer,
 		TypeDebian,
 		TypeGithub,
