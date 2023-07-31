@@ -52,10 +52,10 @@ var (
 	TypeApk = "apk"
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
-	// TypeCocoapods is a pkg:cocoapods purl.
-	TypeCocoapods = "cocoapods"
 	// TypeCargo is a pkg:cargo purl.
 	TypeCargo = "cargo"
+	// TypeCocoapods is a pkg:cocoapods purl.
+	TypeCocoapods = "cocoapods"
 	// TypeComposer is a pkg:composer purl.
 	TypeComposer = "composer"
 	// TypeConan is a pkg:conan purl.
@@ -80,30 +80,30 @@ var (
 	TypeHackage = "hackage"
 	// TypeHex is a pkg:hex purl.
 	TypeHex = "hex"
+	// TypeHuggingface is pkg:huggingface purl.
+	TypeHuggingface = "huggingface"
+	// TypeJulia is a pkg:julia purl
+	TypeJulia = "julia"
+	// TypeMLflow is pkg:mlflow purl.
+	TypeMLFlow = "mlflow"
 	// TypeMaven is a pkg:maven purl.
 	TypeMaven = "maven"
 	// TypeNPM is a pkg:npm purl.
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
-	// TypeQPKG is a pkg:qpkg purl.
-	TypeQpkg = "qpkg"
 	// TypeOCI is a pkg:oci purl
 	TypeOCI = "oci"
 	// TypePyPi is a pkg:pypi purl.
 	TypePyPi = "pypi"
+	// TypeQPKG is a pkg:qpkg purl.
+	TypeQpkg = "qpkg"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
 	// TypeSWID is pkg:swid purl
 	TypeSWID = "swid"
 	// TypeSwift is pkg:swift purl
 	TypeSwift = "swift"
-	// TypeHuggingface is pkg:huggingface purl.
-	TypeHuggingface = "huggingface"
-	// TypeMLflow is pkg:mlflow purl.
-	TypeMLFlow = "mlflow"
-	// TypeJulia is a pkg:julia purl
-	TypeJulia = "julia"
 )
 
 // Qualifier represents a single key=value qualifier in the package url
