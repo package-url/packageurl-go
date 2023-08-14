@@ -84,8 +84,6 @@ var (
 	TypeHex = "hex"
 	// TypeHuggingface is pkg:huggingface purl.
 	TypeHuggingface = "huggingface"
-	// TypeJulia is a pkg:julia purl
-	TypeJulia = "julia"
 	// TypeMLflow is pkg:mlflow purl.
 	TypeMLFlow = "mlflow"
 	// TypeMaven is a pkg:maven purl.
