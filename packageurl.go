@@ -84,8 +84,6 @@ var (
 	TypeHex = "hex"
 	// TypeHuggingface is pkg:huggingface purl.
 	TypeHuggingface = "huggingface"
-	// TypeJulia is a pkg:julia purl
-	TypeJulia = "julia"
 	// TypeMLflow is pkg:mlflow purl.
 	TypeMLFlow = "mlflow"
 	// TypeMaven is a pkg:maven purl.
@@ -108,6 +106,144 @@ var (
 	TypeSWID = "swid"
 	// TypeSwift is pkg:swift purl
 	TypeSwift = "swift"
+
+	// KnownTypes is a map of types that are officially supported by the spec.
+	// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#known-purl-types
+	KnownTypes = map[string]struct{}{
+		TypeAlpm:        {},
+		TypeApk:         {},
+		TypeBitbucket:   {},
+		TypeBitnami:     {},
+		TypeCargo:       {},
+		TypeCocoapods:   {},
+		TypeComposer:    {},
+		TypeConan:       {},
+		TypeConda:       {},
+		TypeCran:        {},
+		TypeDebian:      {},
+		TypeDocker:      {},
+		TypeGem:         {},
+		TypeGeneric:     {},
+		TypeGithub:      {},
+		TypeGolang:      {},
+		TypeHackage:     {},
+		TypeHex:         {},
+		TypeHuggingface: {},
+		TypeMaven:       {},
+		TypeMLFlow:      {},
+		TypeNPM:         {},
+		TypeNuget:       {},
+		TypeOCI:         {},
+		TypePub:         {},
+		TypePyPi:        {},
+		TypeQpkg:        {},
+		TypeRPM:         {},
+		TypeSWID:        {},
+		TypeSwift:       {},
+	}
+
+	TypeApache      = "apache"
+	TypeAndroid     = "android"
+	TypeAtom        = "atom"
+	TypeBower       = "bower"
+	TypeBrew        = "brew"
+	TypeBuildroot   = "buildroot"
+	TypeCarthage    = "carthage"
+	TypeChef        = "chef"
+	TypeChocolatey  = "chocolatey"
+	TypeClojars     = "clojars"
+	TypeCoreos      = "coreos"
+	TypeCpan        = "cpan"
+	TypeCtan        = "ctan"
+	TypeCrystal     = "crystal"
+	TypeDrupal      = "drupal"
+	TypeDtype       = "dtype"
+	TypeDub         = "dub"
+	TypeElm         = "elm"
+	TypeEclipse     = "eclipse"
+	TypeGitea       = "gitea"
+	TypeGitlab      = "gitlab"
+	TypeGradle      = "gradle"
+	TypeGuix        = "guix"
+	TypeHaxe        = "haxe"
+	TypeHelm        = "helm"
+	TypeJulia       = "julia"
+	TypeLua         = "lua"
+	TypeMelpa       = "melpa"
+	TypeMeteor      = "meteor"
+	TypeNim         = "nim"
+	TypeNix         = "nix"
+	TypeOpam        = "opam"
+	TypeOpenwrt     = "openwrt"
+	TypeOsgi        = "osgi"
+	TypeP2          = "p2"
+	TypePear        = "pear"
+	TypePecl        = "pecl"
+	TypePERL6       = "perl6"
+	TypePlatformio  = "platformio"
+	TypeEbuild      = "ebuild"
+	TypePuppet      = "puppet"
+	TypeSourceforge = "sourceforge"
+	TypeSublime     = "sublime"
+	TypeTerraform   = "terraform"
+	TypeVagrant     = "vagrant"
+	TypeVim         = "vim"
+	TypeWORDPRESS   = "wordpress"
+	TypeYocto       = "yocto"
+
+	// CandidateTypes is a map of types that are not yet officially supported by the spec,
+	// but are being considered for inclusion.
+	// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#other-candidate-types-to-define
+	CandidateTypes = map[string]struct{}{
+		TypeApache:      {},
+		TypeAndroid:     {},
+		TypeAtom:        {},
+		TypeBower:       {},
+		TypeBrew:        {},
+		TypeBuildroot:   {},
+		TypeCarthage:    {},
+		TypeChef:        {},
+		TypeChocolatey:  {},
+		TypeClojars:     {},
+		TypeCoreos:      {},
+		TypeCpan:        {},
+		TypeCtan:        {},
+		TypeCrystal:     {},
+		TypeDrupal:      {},
+		TypeDtype:       {},
+		TypeDub:         {},
+		TypeElm:         {},
+		TypeEclipse:     {},
+		TypeGitea:       {},
+		TypeGitlab:      {},
+		TypeGradle:      {},
+		TypeGuix:        {},
+		TypeHaxe:        {},
+		TypeHelm:        {},
+		TypeJulia:       {},
+		TypeLua:         {},
+		TypeMelpa:       {},
+		TypeMeteor:      {},
+		TypeNim:         {},
+		TypeNix:         {},
+		TypeOpam:        {},
+		TypeOpenwrt:     {},
+		TypeOsgi:        {},
+		TypeP2:          {},
+		TypePear:        {},
+		TypePecl:        {},
+		TypePERL6:       {},
+		TypePlatformio:  {},
+		TypeEbuild:      {},
+		TypePuppet:      {},
+		TypeSourceforge: {},
+		TypeSublime:     {},
+		TypeTerraform:   {},
+		TypeVagrant:     {},
+		TypeVim:         {},
+		TypeWORDPRESS:   {},
+		TypeYocto:       {},
+	}
 )
 
 // Qualifier represents a single key=value qualifier in the package url
