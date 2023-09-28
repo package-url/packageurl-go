@@ -40,6 +40,12 @@ var (
 	//   '-' and '_' (period, dash and underscore).
 	// - A key cannot start with a number.
 	QualifierKeyPattern = regexp.MustCompile(`^[A-Za-z\.\-_][0-9A-Za-z\.\-_]*$`)
+	// TypePattern describes a valid type:
+	//
+	// - The type must be composed only of ASCII letters and numbers, '.',
+	// '+' and '-' (period, plus and dash).
+	// - A type cannot start with a number.
+	TypePattern = regexp.MustCompile(`^[A-Za-z\.\-\+][0-9A-Za-z\.\-\+]*$`)
 )
 
 // These are the known purl types as defined in the spec. Some of these require
@@ -307,6 +313,33 @@ func (qq Qualifiers) String() string {
 	return strings.Join(kvPairs, "&")
 }
 
+func (qq *Qualifiers) Normalize() error {
+	qs := *qq
+	normedQQ := make(Qualifiers, 0, len(qs))
+	for _, q := range qs {
+		if q.Key == "" {
+			return fmt.Errorf("key is missing from qualifier: %v", q)
+		}
+		if q.Value == "" {
+			// Empty values are equivalent to the key being omitted from the PackageURL.
+			continue
+		}
+		key := strings.ToLower(q.Key)
+		if !validQualifierKey(key) {
+			return fmt.Errorf("invalid qualifier key: %q", key)
+		}
+		normedQQ = append(normedQQ, Qualifier{key, q.Value})
+	}
+	sort.Slice(normedQQ, func(i, j int) bool { return normedQQ[i].Key < normedQQ[j].Key })
+	for i := 1; i < len(normedQQ); i++ {
+		if normedQQ[i-1].Key == normedQQ[i].Key {
+			return fmt.Errorf("duplicate qualifier key: %q", normedQQ[i].Key)
+		}
+	}
+	*qq = normedQQ
+	return nil
+}
+
 // PackageURL is the struct representation of the parts that make a package url
 type PackageURL struct {
 	Type       string
@@ -399,13 +432,45 @@ func FromString(purl string) (PackageURL, error) {
 	pURL := PackageURL{
 		Qualifiers: qualifiers,
 		Type:       typ,
-		Namespace:  typeAdjustNamespace(typ, namespace),
-		Name:       typeAdjustName(typ, name, qualifiers),
-		Version:    typeAdjustVersion(typ, version),
-		Subpath:    strings.Trim(u.Fragment, "/"),
+		Namespace:  namespace,
+		Name:       name,
+		Version:    version,
+		Subpath:    u.Fragment,
 	}
 
-	return pURL, validCustomRules(pURL)
+	err = pURL.Normalize()
+	return pURL, err
+}
+
+// Normalize converts p to its canonical form, returning an error if p is invalid.
+func (p *PackageURL) Normalize() error {
+	typ := strings.ToLower(p.Type)
+	if !validType(typ) {
+		return fmt.Errorf("invalid type %q", typ)
+	}
+	namespace := strings.Trim(p.Namespace, "/")
+	if err := p.Qualifiers.Normalize(); err != nil {
+		return fmt.Errorf("invalid qualifiers: %v", err)
+	}
+	if p.Name == "" {
+		return errors.New("purl is missing name")
+	}
+	subpath := strings.Trim(p.Subpath, "/")
+	segs := strings.Split(p.Subpath, "/")
+	for _, s := range segs {
+		if s == "." || s == ".." {
+			return fmt.Errorf("invalid Package URL subpath: %q", p.Subpath)
+		}
+	}
+	*p = PackageURL{
+		Type:       typ,
+		Namespace:  typeAdjustNamespace(typ, namespace),
+		Name:       typeAdjustName(typ, p.Name, p.Qualifiers),
+		Version:    typeAdjustVersion(typ, p.Version),
+		Qualifiers: p.Qualifiers,
+		Subpath:    subpath,
+	}
+	return validCustomRules(*p)
 }
 
 // escape the given string in a purl-compatible way.
@@ -477,11 +542,11 @@ func parseQualifiers(rawQuery string) (Qualifiers, error) {
 			return nil, fmt.Errorf("invalid qualifier key: '%s'", key)
 		}
 
-		if len(value) > 0 {
-			// only the first character needs  to be lowercase. Note that pURL is always UTF8, so we
-			// don't need to care about unicode here.
-			value = strings.ToLower(value[:1]) + value[1:]
+		value, err = url.QueryUnescape(value)
+		if err != nil {
+			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
 		}
+
 		q = append(q, Qualifier{
 			Key:   strings.ToLower(key),
 			Value: value,
@@ -564,6 +629,11 @@ func adjustMlflowName(name string, qualifiers map[string]string) string {
 // validQualifierKey validates a qualifierKey against our QualifierKeyPattern.
 func validQualifierKey(key string) bool {
 	return QualifierKeyPattern.MatchString(key)
+}
+
+// validType validates a type against our TypePattern.
+func validType(typ string) bool {
+	return TypePattern.MatchString(typ)
 }
 
 // validCustomRules evaluates additional rules for each package url type, as specified in the package-url specification.
