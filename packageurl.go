@@ -482,11 +482,14 @@ func parseQualifiers(rawQuery string) (Qualifiers, error) {
 			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
 		}
 
-		q = append(q, Qualifier{
-			Key: strings.ToLower(key),
+		if len(value) > 0 {
 			// only the first character needs  to be lowercase. Note that pURL is always UTF8, so we
 			// don't need to care about unicode here.
-			Value: strings.ToLower(value[:1]) + value[1:],
+			value = strings.ToLower(value[:1]) + value[1:]
+		}
+		q = append(q, Qualifier{
+			Key:   strings.ToLower(key),
+			Value: value,
 		})
 	}
 	return q, nil
