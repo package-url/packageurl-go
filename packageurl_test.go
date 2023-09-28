@@ -315,3 +315,19 @@ func TestNameEscaping(t *testing.T) {
 	}
 
 }
+
+func TestQualifierMissingEqual(t *testing.T) {
+	input := "pkg:npm/test-pkg?key"
+	want := packageurl.PackageURL{
+		Type:       "npm",
+		Name:       "test-pkg",
+		Qualifiers: packageurl.Qualifiers{{Key: "key"}},
+	}
+	got, err := packageurl.FromString(input)
+	if err != nil {
+		t.Fatalf("FromString(%s): unexpected error: %v", input, err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Fatalf("FromString(%s): want %q got %q", input, want, got)
+	}
+}
