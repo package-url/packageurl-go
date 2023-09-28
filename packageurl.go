@@ -477,11 +477,6 @@ func parseQualifiers(rawQuery string) (Qualifiers, error) {
 			return nil, fmt.Errorf("invalid qualifier key: '%s'", key)
 		}
 
-		value, err = url.QueryUnescape(value)
-		if err != nil {
-			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
-		}
-
 		if len(value) > 0 {
 			// only the first character needs  to be lowercase. Note that pURL is always UTF8, so we
 			// don't need to care about unicode here.
