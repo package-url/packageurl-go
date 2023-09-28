@@ -27,6 +27,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -159,8 +160,16 @@ func TestFromStringExamples(t *testing.T) {
 				t.Logf("%s: incorrect version: wanted: '%s', got '%s'", tc.Description, tc.Version, p.Version)
 				t.Fail()
 			}
-			if !reflect.DeepEqual(p.Qualifiers, tc.Qualifiers()) {
-				t.Logf("%s: incorrect qualifiers: wanted: '%#v', got '%#v'", tc.Description, tc.Qualifiers(), p.Qualifiers)
+			want := tc.Qualifiers()
+			sort.Slice(want, func(i, j int) bool {
+				return want[i].Key < want[j].Key
+			})
+			got := p.Qualifiers
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].Key < got[j].Key
+			})
+			if !reflect.DeepEqual(want, got) {
+				t.Logf("%s: incorrect qualifiers: wanted: '%#v', got '%#v'", tc.Description, want, p.Qualifiers)
 				t.Fail()
 			}
 
@@ -321,7 +330,7 @@ func TestQualifierMissingEqual(t *testing.T) {
 	want := packageurl.PackageURL{
 		Type:       "npm",
 		Name:       "test-pkg",
-		Qualifiers: packageurl.Qualifiers{{Key: "key"}},
+		Qualifiers: packageurl.Qualifiers{},
 	}
 	got, err := packageurl.FromString(input)
 	if err != nil {
@@ -329,5 +338,209 @@ func TestQualifierMissingEqual(t *testing.T) {
 	}
 	if !reflect.DeepEqual(want, got) {
 		t.Fatalf("FromString(%s): want %q got %q", input, want, got)
+	}
+}
+
+func TestNormalize(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   packageurl.PackageURL
+		want    packageurl.PackageURL
+		wantErr bool
+	}{{
+		name: "type is case insensitive",
+		input: packageurl.PackageURL{
+			Type: "NpM",
+			Name: "pkg",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Name:       "pkg",
+			Qualifiers: packageurl.Qualifiers{},
+		},
+	}, {
+		name: "type is manditory",
+		input: packageurl.PackageURL{
+			Name: "pkg",
+		},
+		wantErr: true,
+	}, {
+		name: "leading and traling / on namespace are trimmed",
+		input: packageurl.PackageURL{
+			Type:      "npm",
+			Namespace: "/namespace/org/",
+			Name:      "pkg",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Namespace:  "namespace/org",
+			Name:       "pkg",
+			Qualifiers: packageurl.Qualifiers{},
+		},
+	}, {
+		name: "qualifiers with empty values are removed",
+		input: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "k1", Value: "v1",
+			}, {
+				Key: "k2", Value: "",
+			}, {
+				Key: "k3", Value: "v3",
+			}},
+		},
+		want: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "k1", Value: "v1",
+			}, {
+				Key: "k3", Value: "v3",
+			}},
+		},
+	}, {
+		name: "qualifiers are sorted by key",
+		input: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "k3", Value: "v3",
+			}, {
+				Key: "k2", Value: "v2",
+			}, {
+				Key: "k1", Value: "v1",
+			}},
+		},
+		want: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "k1", Value: "v1",
+			}, {
+				Key: "k2", Value: "v2",
+			}, {
+				Key: "k3", Value: "v3",
+			}},
+		},
+	}, {
+		name: "duplicate keys are invalid",
+		input: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "k1", Value: "v1",
+			}, {
+				Key: "k1", Value: "v2",
+			}},
+		},
+		wantErr: true,
+	}, {
+		name: "keys are made lower case",
+		input: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "KeY", Value: "v1",
+			}},
+		},
+		want: packageurl.PackageURL{
+			Type: "npm",
+			Name: "pkg",
+			Qualifiers: packageurl.Qualifiers{{
+				Key: "key", Value: "v1",
+			}},
+		},
+	}, {
+		name: "name is required",
+		input: packageurl.PackageURL{
+			Type: "npm",
+		},
+		wantErr: true,
+	}, {
+		name: "leading and traling / on subpath are trimmed",
+		input: packageurl.PackageURL{
+			Type:    "npm",
+			Name:    "pkg",
+			Subpath: "/sub/path/",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Name:       "pkg",
+			Qualifiers: packageurl.Qualifiers{},
+			Subpath:    "sub/path",
+		},
+	}, {
+		name: "'.' is an invalid subpath segment",
+		input: packageurl.PackageURL{
+			Type:    "npm",
+			Name:    "pkg",
+			Subpath: "/sub/./path/",
+		},
+		wantErr: true,
+	}, {
+		name: "'..' is an invalid subpath segment",
+		input: packageurl.PackageURL{
+			Type:    "npm",
+			Name:    "pkg",
+			Subpath: "/sub/../path/",
+		},
+		wantErr: true,
+	}, {
+		name: "known type namespace adjustments",
+		input: packageurl.PackageURL{
+			Type:      "npm",
+			Namespace: "NaMeSpAcE",
+			Name:      "pkg",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Namespace:  "namespace",
+			Name:       "pkg",
+			Qualifiers: packageurl.Qualifiers{},
+		},
+	}, {
+		name: "known type name adjustments",
+		input: packageurl.PackageURL{
+			Type: "npm",
+			Name: "nAmE",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Name:       "name",
+			Qualifiers: packageurl.Qualifiers{},
+		},
+	}, {
+		name: "known type version adjustments",
+		input: packageurl.PackageURL{
+			Type:    "huggingface",
+			Name:    "name",
+			Version: "VeRsIoN",
+		},
+		want: packageurl.PackageURL{
+			Type:       "huggingface",
+			Name:       "name",
+			Version:    "version",
+			Qualifiers: packageurl.Qualifiers{},
+		},
+	}}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := testCase.input
+			err := got.Normalize()
+			if err != nil && testCase.wantErr {
+				return
+			}
+			if err != nil && !testCase.wantErr {
+				t.Fatalf("Normalize(%s): unexpected error: %v", testCase.name, err)
+			}
+			if testCase.wantErr {
+				t.Fatalf("Normalize(%s): want error, got none", testCase.name)
+			}
+			if !reflect.DeepEqual(testCase.want, got) {
+				t.Fatalf("Normalize(%s):\nwant %#v\ngot %#v", testCase.name, testCase.want, got)
+			}
+		})
 	}
 }
