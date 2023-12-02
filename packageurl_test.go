@@ -500,6 +500,19 @@ func TestNormalize(t *testing.T) {
 			Subpath:    "./sub/path",
 		},
 	}, {
+		name: "'../' is a valid subpath prefix",
+		input: packageurl.PackageURL{
+			Type:    "npm",
+			Name:    "pkg",
+			Subpath: "../sub/path",
+		},
+		want: packageurl.PackageURL{
+			Type:       "npm",
+			Name:       "pkg",
+			Qualifiers: packageurl.Qualifiers{},
+			Subpath:    "../sub/path",
+		},
+	}, {
 		name: "known type namespace adjustments",
 		input: packageurl.PackageURL{
 			Type:      "npm",
