@@ -51,7 +51,7 @@ var (
 // These are the known purl types as defined in the spec. Some of these require
 // special treatment during parsing.
 // https://github.com/package-url/purl-spec#known-purl-types
-var (
+const (
 	// TypeAlpm is a pkg:alpm purl.
 	TypeAlpm = "alpm"
 	// TypeApk is a pkg:apk purl.
@@ -112,42 +112,44 @@ var (
 	TypeSWID = "swid"
 	// TypeSwift is pkg:swift purl
 	TypeSwift = "swift"
+)
 
-	// KnownTypes is a map of types that are officially supported by the spec.
-	// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#known-purl-types
-	KnownTypes = map[string]struct{}{
-		TypeAlpm:        {},
-		TypeApk:         {},
-		TypeBitbucket:   {},
-		TypeBitnami:     {},
-		TypeCargo:       {},
-		TypeCocoapods:   {},
-		TypeComposer:    {},
-		TypeConan:       {},
-		TypeConda:       {},
-		TypeCran:        {},
-		TypeDebian:      {},
-		TypeDocker:      {},
-		TypeGem:         {},
-		TypeGeneric:     {},
-		TypeGithub:      {},
-		TypeGolang:      {},
-		TypeHackage:     {},
-		TypeHex:         {},
-		TypeHuggingface: {},
-		TypeMaven:       {},
-		TypeMLFlow:      {},
-		TypeNPM:         {},
-		TypeNuget:       {},
-		TypeOCI:         {},
-		TypePub:         {},
-		TypePyPi:        {},
-		TypeQpkg:        {},
-		TypeRPM:         {},
-		TypeSWID:        {},
-		TypeSwift:       {},
-	}
+// KnownTypes is a map of types that are officially supported by the spec.
+// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#known-purl-types
+var KnownTypes = map[string]struct{}{
+	TypeAlpm:        {},
+	TypeApk:         {},
+	TypeBitbucket:   {},
+	TypeBitnami:     {},
+	TypeCargo:       {},
+	TypeCocoapods:   {},
+	TypeComposer:    {},
+	TypeConan:       {},
+	TypeConda:       {},
+	TypeCran:        {},
+	TypeDebian:      {},
+	TypeDocker:      {},
+	TypeGem:         {},
+	TypeGeneric:     {},
+	TypeGithub:      {},
+	TypeGolang:      {},
+	TypeHackage:     {},
+	TypeHex:         {},
+	TypeHuggingface: {},
+	TypeMaven:       {},
+	TypeMLFlow:      {},
+	TypeNPM:         {},
+	TypeNuget:       {},
+	TypeOCI:         {},
+	TypePub:         {},
+	TypePyPi:        {},
+	TypeQpkg:        {},
+	TypeRPM:         {},
+	TypeSWID:        {},
+	TypeSwift:       {},
+}
 
+const (
 	TypeApache      = "apache"
 	TypeAndroid     = "android"
 	TypeAtom        = "atom"
@@ -196,61 +198,61 @@ var (
 	TypeVim         = "vim"
 	TypeWORDPRESS   = "wordpress"
 	TypeYocto       = "yocto"
-
-	// CandidateTypes is a map of types that are not yet officially supported by the spec,
-	// but are being considered for inclusion.
-	// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#other-candidate-types-to-define
-	CandidateTypes = map[string]struct{}{
-		TypeApache:      {},
-		TypeAndroid:     {},
-		TypeAtom:        {},
-		TypeBower:       {},
-		TypeBrew:        {},
-		TypeBuildroot:   {},
-		TypeCarthage:    {},
-		TypeChef:        {},
-		TypeChocolatey:  {},
-		TypeClojars:     {},
-		TypeCoreos:      {},
-		TypeCpan:        {},
-		TypeCtan:        {},
-		TypeCrystal:     {},
-		TypeDrupal:      {},
-		TypeDtype:       {},
-		TypeDub:         {},
-		TypeElm:         {},
-		TypeEclipse:     {},
-		TypeGitea:       {},
-		TypeGitlab:      {},
-		TypeGradle:      {},
-		TypeGuix:        {},
-		TypeHaxe:        {},
-		TypeHelm:        {},
-		TypeJulia:       {},
-		TypeLua:         {},
-		TypeMelpa:       {},
-		TypeMeteor:      {},
-		TypeNim:         {},
-		TypeNix:         {},
-		TypeOpam:        {},
-		TypeOpenwrt:     {},
-		TypeOsgi:        {},
-		TypeP2:          {},
-		TypePear:        {},
-		TypePecl:        {},
-		TypePERL6:       {},
-		TypePlatformio:  {},
-		TypeEbuild:      {},
-		TypePuppet:      {},
-		TypeSourceforge: {},
-		TypeSublime:     {},
-		TypeTerraform:   {},
-		TypeVagrant:     {},
-		TypeVim:         {},
-		TypeWORDPRESS:   {},
-		TypeYocto:       {},
-	}
 )
+
+// CandidateTypes is a map of types that are not yet officially supported by the spec,
+// but are being considered for inclusion.
+// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#other-candidate-types-to-define
+var CandidateTypes = map[string]struct{}{
+	TypeApache:      {},
+	TypeAndroid:     {},
+	TypeAtom:        {},
+	TypeBower:       {},
+	TypeBrew:        {},
+	TypeBuildroot:   {},
+	TypeCarthage:    {},
+	TypeChef:        {},
+	TypeChocolatey:  {},
+	TypeClojars:     {},
+	TypeCoreos:      {},
+	TypeCpan:        {},
+	TypeCtan:        {},
+	TypeCrystal:     {},
+	TypeDrupal:      {},
+	TypeDtype:       {},
+	TypeDub:         {},
+	TypeElm:         {},
+	TypeEclipse:     {},
+	TypeGitea:       {},
+	TypeGitlab:      {},
+	TypeGradle:      {},
+	TypeGuix:        {},
+	TypeHaxe:        {},
+	TypeHelm:        {},
+	TypeJulia:       {},
+	TypeLua:         {},
+	TypeMelpa:       {},
+	TypeMeteor:      {},
+	TypeNim:         {},
+	TypeNix:         {},
+	TypeOpam:        {},
+	TypeOpenwrt:     {},
+	TypeOsgi:        {},
+	TypeP2:          {},
+	TypePear:        {},
+	TypePecl:        {},
+	TypePERL6:       {},
+	TypePlatformio:  {},
+	TypeEbuild:      {},
+	TypePuppet:      {},
+	TypeSourceforge: {},
+	TypeSublime:     {},
+	TypeTerraform:   {},
+	TypeVagrant:     {},
+	TypeVim:         {},
+	TypeWORDPRESS:   {},
+	TypeYocto:       {},
+}
 
 // Qualifier represents a single key=value qualifier in the package url
 type Qualifier struct {
