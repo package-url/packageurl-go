@@ -528,11 +528,11 @@ func TestNormalize(t *testing.T) {
 	}, {
 		name: "known type name adjustments",
 		input: packageurl.PackageURL{
-			Type: "npm",
+			Type: "alpm",
 			Name: "nAmE",
 		},
 		want: packageurl.PackageURL{
-			Type:       "npm",
+			Type:       "alpm",
 			Name:       "name",
 			Qualifiers: packageurl.Qualifiers{},
 		},

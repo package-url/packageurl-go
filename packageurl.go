@@ -586,8 +586,7 @@ func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 		TypeComposer,
 		TypeDebian,
 		TypeGithub,
-		TypeGolang,
-		TypeNPM:
+		TypeGolang:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
