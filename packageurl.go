@@ -566,7 +566,6 @@ func typeAdjustNamespace(purlType, ns string) string {
 		TypeDebian,
 		TypeGithub,
 		TypeGolang,
-		TypeNPM,
 		TypeRPM,
 		TypeQpkg:
 		return strings.ToLower(ns)

@@ -515,12 +515,12 @@ func TestNormalize(t *testing.T) {
 	}, {
 		name: "known type namespace adjustments",
 		input: packageurl.PackageURL{
-			Type:      "npm",
+			Type:      "apk",
 			Namespace: "NaMeSpAcE",
 			Name:      "pkg",
 		},
 		want: packageurl.PackageURL{
-			Type:       "npm",
+			Type:       "apk",
 			Namespace:  "namespace",
 			Name:       "pkg",
 			Qualifiers: packageurl.Qualifiers{},
