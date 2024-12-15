@@ -15,7 +15,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Download test data
-        run: curl -L https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
+        # TODO(@shibumi): Remove pinned version and reset to master, once the failing npm test-cases got fixed.
+        run: curl -L https://raw.githubusercontent.com/package-url/purl-spec/0dd92f26f8bb11956ffdf5e8acfcee71e8560407/test-suite-data.json -o testdata/test-suite-data.json
       - name: Test go fmt
         run: test -z $(go fmt ./...)
       - name: Golangci-lint
