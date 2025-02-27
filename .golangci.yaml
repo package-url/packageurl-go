@@ -1,5 +1,5 @@
 # individual linter configs go here
-linters-settings:
+linters-settings: {}
 
 # default linters are enabled `golangci-lint help linters`
 linters:
