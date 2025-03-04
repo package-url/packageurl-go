@@ -126,6 +126,7 @@ var KnownTypes = map[string]struct{}{
 	TypeComposer:    {},
 	TypeConan:       {},
 	TypeConda:       {},
+	TypeCpan:        {},
 	TypeCran:        {},
 	TypeDebian:      {},
 	TypeDocker:      {},
@@ -215,7 +216,6 @@ var CandidateTypes = map[string]struct{}{
 	TypeChocolatey:  {},
 	TypeClojars:     {},
 	TypeCoreos:      {},
-	TypeCpan:        {},
 	TypeCtan:        {},
 	TypeCrystal:     {},
 	TypeDrupal:      {},
@@ -568,7 +568,6 @@ func typeAdjustNamespace(purlType, ns string) string {
 		TypeDebian,
 		TypeGithub,
 		TypeGolang,
-		TypeNPM,
 		TypeRPM,
 		TypeQpkg:
 		return strings.ToLower(ns)
@@ -588,8 +587,7 @@ func typeAdjustName(purlType, name string, qualifiers Qualifiers) string {
 		TypeComposer,
 		TypeDebian,
 		TypeGithub,
-		TypeGolang,
-		TypeNPM:
+		TypeGolang:
 		return strings.ToLower(name)
 	case TypePyPi:
 		return strings.ToLower(strings.ReplaceAll(name, "_", "-"))
@@ -657,6 +655,24 @@ func validCustomRules(p PackageURL) error {
 				if val != "" {
 					return errors.New("namespace is required if channel is non empty")
 				}
+			}
+		}
+	case TypeCpan:
+		if p.Namespace != "" {
+			// The purl refers to a CPAN distribution.
+			publisher := p.Namespace
+			if publisher != strings.ToUpper(publisher) {
+				return errors.New("a cpan distribution namespace must be all uppercase")
+			}
+			distName := p.Name
+			if strings.Contains(distName, "::") {
+				return errors.New("a cpan distribution name must not contain '::'")
+			}
+		} else {
+			// The purl refers to a CPAN module.
+			moduleName := p.Name
+			if strings.Contains(moduleName, "-") {
+				return errors.New("a cpan module name may not contain dashes")
 			}
 		}
 	case TypeSwift:
