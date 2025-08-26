@@ -103,8 +103,8 @@ func TestQualifierValueEncoding(t *testing.T) {
 	}
 }
 
-// Exercise the [encodeQualifierValue] function.
-func TestEncodeQualifierValue(t *testing.T) {
+// Exercise the [percentEncode] function.
+func TestPercentEncode(t *testing.T) {
 	tests := []struct {
 		name       string
 		givenValue string
@@ -151,7 +151,7 @@ func TestEncodeQualifierValue(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := encodeQualifierValue(tc.givenValue)
+			got := percentEncode(tc.givenValue)
 			if tc.want != got {
 				t.Logf("'%s' test failed: wanted: '%s', got '%s'", tc.name, tc.want, got)
 				t.Fail()

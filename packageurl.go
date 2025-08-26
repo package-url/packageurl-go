@@ -261,16 +261,7 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, encodeQualifierValue(q.Value))
-}
-
-func encodeQualifierValue(v string) string {
-	// We need to correct certain aspects of the [url.QueryEscape] output to conform to spec.
-	replacer := strings.NewReplacer(
-		"%3A", ":", // Spec says colon MUST NOT be encoded.
-		"+", "%20", // A space must be percent-encoded, not turned to a '+'.
-	)
-	return replacer.Replace(url.QueryEscape(v))
+	return fmt.Sprintf("%s=%s", q.Key, percentEncode(q.Value))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
@@ -377,15 +368,17 @@ func (p *PackageURL) ToString() string {
 	}
 
 	paths := []string{p.Type}
-	// we need to escape each segment by itself, so that we don't escape "/" in the namespace.
+	// Each namespace segment MUST be a percent-encoded string.
+	// We need to escape each segment by itself, so that we don't escape "/" in the namespace.
 	for _, segment := range strings.Split(p.Namespace, "/") {
 		if segment == "" {
 			continue
 		}
-		paths = append(paths, escape(segment))
+		paths = append(paths, percentEncode(segment))
 	}
 
-	nameWithVersion := escape(p.Name)
+	// A name MUST be a percent-encoded string.
+	nameWithVersion := percentEncode(p.Name)
 	if p.Version != "" {
 		// A version MUST be a percent-encoded string.
 		nameWithVersion += "@" + percentEncode(p.Version)
@@ -489,17 +482,6 @@ func percentEncode(s string) string {
 		"+", "%20", // A space must be percent-encoded, not turned to a '+'.
 	)
 	return replacer.Replace(s)
-}
-
-// escape the given string in a purl-compatible way.
-func escape(s string) string {
-	// for compatibility with other implementations and the purl-spec, we want to escape all
-	// characters, which is what "QueryEscape" does. The issue with QueryEscape is that it encodes
-	// " " (space) as "+", which is valid in a query, but invalid in a path (see
-	// https://stackoverflow.com/questions/2678551/when-should-space-be-encoded-to-plus-or-20) for
-	// context).
-	// To work around that, we replace the "+" signs with the path-compatible "%20".
-	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
 
 func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {
