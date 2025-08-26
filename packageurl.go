@@ -387,7 +387,8 @@ func (p *PackageURL) ToString() string {
 
 	nameWithVersion := escape(p.Name)
 	if p.Version != "" {
-		nameWithVersion += "@" + escape(p.Version)
+		// A version MUST be a percent-encoded string.
+		nameWithVersion += "@" + percentEncode(p.Version)
 	}
 
 	paths = append(paths, nameWithVersion)
@@ -474,6 +475,20 @@ func (p *PackageURL) Normalize() error {
 		Subpath:    subpath,
 	}
 	return validCustomRules(*p)
+}
+
+// percentEncode percent-encodes a purl component according to [Encoding].
+//
+// [Encoding] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#character-encoding
+func percentEncode(s string) string {
+	// [url.QueryEscape] gets us most of the way.
+	s = url.QueryEscape(s)
+	// ... but we need to correct its output to conform to the purl spec.
+	replacer := strings.NewReplacer(
+		"%3A", ":", // Spec says colon MUST NOT be encoded.
+		"+", "%20", // A space must be percent-encoded, not turned to a '+'.
+	)
+	return replacer.Replace(s)
 }
 
 // escape the given string in a purl-compatible way.
