@@ -29,6 +29,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -260,21 +261,21 @@ type Qualifier struct {
 
 func (q Qualifier) String() string {
 	// A value must be a percent-encoded string
-	return fmt.Sprintf("%s=%s", q.Key, url.PathEscape(q.Value))
+	return fmt.Sprintf("%s=%s", q.Key, encodeQualifierValue(q.Value))
+}
+
+func encodeQualifierValue(v string) string {
+	// We need to correct certain aspects of the [url.QueryEscape] output to conform to spec.
+	replacer := strings.NewReplacer(
+		"%3A", ":", // Spec says colon MUST NOT be encoded.
+		"+", "%20", // A space must be percent-encoded, not turned to a '+'.
+	)
+	return replacer.Replace(url.QueryEscape(v))
 }
 
 // Qualifiers is a slice of key=value pairs, with order preserved as it appears
 // in the package URL.
 type Qualifiers []Qualifier
-
-// urlQuery returns a raw URL query with all the qualifiers as keys + values.
-func (q Qualifiers) urlQuery() (rawQuery string) {
-	v := make(url.Values)
-	for _, qq := range q {
-		v.Add(qq.Key, qq.Value)
-	}
-	return v.Encode()
-}
 
 // QualifiersFromMap constructs a Qualifiers slice from a string map. To get a
 // deterministic qualifier order (despite maps not providing any iteration order
@@ -307,6 +308,8 @@ func (qq Qualifiers) Map() map[string]string {
 
 func (qq Qualifiers) String() string {
 	var kvPairs []string
+	// Canonical form requires qualifier keys to be lexicographically ordered.
+	slices.SortFunc(qq, func(a, b Qualifier) int { return strings.Compare(a.Key, b.Key) })
 	for _, q := range qq {
 		kvPairs = append(kvPairs, q.String())
 	}
@@ -369,7 +372,7 @@ func NewPackageURL(purlType, namespace, name, version string,
 func (p *PackageURL) ToString() string {
 	u := &url.URL{
 		Scheme:   "pkg",
-		RawQuery: p.Qualifiers.urlQuery(),
+		RawQuery: p.Qualifiers.String(),
 		Fragment: p.Subpath,
 	}
 
