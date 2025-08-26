@@ -365,7 +365,6 @@ func (p *PackageURL) ToString() string {
 	u := &url.URL{
 		Scheme:   "pkg",
 		RawQuery: p.Qualifiers.String(),
-		Fragment: p.Subpath,
 	}
 
 	paths := []string{p.Type}
@@ -388,7 +387,19 @@ func (p *PackageURL) ToString() string {
 	paths = append(paths, nameWithVersion)
 
 	u.Opaque = strings.Join(paths, "/")
-	return u.String()
+	if p.Subpath == "" {
+		return u.String()
+	}
+
+	// Each subpath segment MUST be a percent-encoded string.
+	var subpathSegments []string
+	for _, segment := range strings.Split(p.Subpath, "/") {
+		if segment == "" {
+			continue
+		}
+		subpathSegments = append(subpathSegments, percentEncode(segment))
+	}
+	return u.String() + "#" + strings.Join(subpathSegments, "/")
 }
 
 func (p PackageURL) String() string {
