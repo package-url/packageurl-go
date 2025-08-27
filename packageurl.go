@@ -260,6 +260,9 @@ type Qualifier struct {
 	Value string
 }
 
+// String returns a canonical string representation of the qualifier according to [SPEC].
+//
+// [SPEC] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#rules-for-each-purl-component
 func (q Qualifier) String() string {
 	// A value must be a percent-encoded string
 	return fmt.Sprintf("%s=%s", q.Key, percentEncode(q.Value))
@@ -298,6 +301,9 @@ func (qq Qualifiers) Map() map[string]string {
 	return m
 }
 
+// String returns a canonical string representation of the qualifiers according to [SPEC].
+//
+// [SPEC] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#rules-for-each-purl-component
 func (qq Qualifiers) String() string {
 	var kvPairs []string
 	// Canonical form requires qualifier keys to be lexicographically ordered.
@@ -359,8 +365,9 @@ func NewPackageURL(purlType, namespace, name, version string,
 	}
 }
 
-// ToString returns the human-readable instance of the PackageURL structure.
-// This is the literal purl as defined by the spec.
+// ToString returns a canonical string representation of the qualifier according to [SPEC].
+//
+// [SPEC] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#rules-for-each-purl-component
 func (p *PackageURL) ToString() string {
 	u := &url.URL{
 		Scheme:   "pkg",
@@ -406,7 +413,7 @@ func (p PackageURL) String() string {
 	return p.ToString()
 }
 
-// FromString parses a valid package url string into a PackageURL structure
+// FromString parses a valid package url string into a [PackageURL].
 func FromString(purl string) (PackageURL, error) {
 	u, err := url.Parse(purl)
 	if err != nil {
