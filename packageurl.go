@@ -26,7 +26,6 @@ package packageurl
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"net/url"
 	"path"
 	"regexp"
@@ -657,16 +656,6 @@ func validType(typ string) bool {
 // On success, it returns nil. On failure, a descriptive error will be returned.
 func validCustomRules(p PackageURL) error {
 	switch p.Type {
-	case TypeConan:
-		qualifierKeys := slices.Collect(maps.Keys(p.Qualifiers.Map()))
-		hasNamespace := p.Namespace != ""
-		hasChannel := slices.Contains(qualifierKeys, "channel")
-		if hasNamespace && !hasChannel {
-			return errors.New("channel qualifier is required if namespace is present")
-		}
-		if hasChannel && !hasNamespace {
-			return errors.New("namespace is required if channel qualifier is present")
-		}
 	case TypeCpan:
 		// It MUST be written uppercase and is required.
 		if p.Namespace == "" {
