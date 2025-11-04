@@ -670,6 +670,15 @@ func validCustomRules(p PackageURL) error {
 		if strings.Contains(distName, "::") {
 			return errors.New("a cpan distribution name must not contain '::'")
 		}
+	case TypeJulia:
+		// The spec prohibits a namespace.
+		if p.Namespace != "" {
+			return errors.New("a julia purl must not have a namespace")
+		}
+		// The spec requires the presence of a uuid qualifier.
+		if _, ok := p.Qualifiers.Map()["uuid"]; !ok {
+			return errors.New("a julia purl must have a uuid qualifier")
+		}
 	case TypeSwift:
 		if p.Namespace == "" {
 			return errors.New("namespace is required")
