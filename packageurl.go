@@ -101,6 +101,8 @@ var (
 	TypeNuget = "nuget"
 	// TypeOCI is a pkg:oci purl
 	TypeOCI = "oci"
+	// TypeOTP is a pkg:otp purl
+	TypeOTP = "otp"
 	// TypePub is a pkg:pub purl.
 	TypePub = "pub"
 	// TypePyPi is a pkg:pypi purl.
@@ -142,6 +144,7 @@ var (
 		TypeNPM:         {},
 		TypeNuget:       {},
 		TypeOCI:         {},
+		TypeOTP:         {},
 		TypePub:         {},
 		TypePyPi:        {},
 		TypeQpkg:        {},
@@ -678,6 +681,11 @@ func validCustomRules(p PackageURL) error {
 		// The spec requires the presence of a uuid qualifier.
 		if _, ok := p.Qualifiers.Map()["uuid"]; !ok {
 			return errors.New("a julia purl must have a uuid qualifier")
+		}
+	case TypeOTP:
+		// The spec prohibits a namespace.
+		if p.Namespace != "" {
+			return errors.New("an otp purl must not have a namespace")
 		}
 	case TypeSwift:
 		if p.Namespace == "" {
