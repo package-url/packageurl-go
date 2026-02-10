@@ -99,9 +99,9 @@ var (
 	TypeNPM = "npm"
 	// TypeNuget is a pkg:nuget purl.
 	TypeNuget = "nuget"
-	// TypeOCI is a pkg:oci purl
+	// TypeOCI is a pkg:oci purl.
 	TypeOCI = "oci"
-	// TypeOTP is a pkg:otp purl
+	// TypeOTP is a pkg:otp purl.
 	TypeOTP = "otp"
 	// TypePub is a pkg:pub purl.
 	TypePub = "pub"
@@ -111,46 +111,52 @@ var (
 	TypeQpkg = "qpkg"
 	// TypeRPM is a pkg:rpm purl.
 	TypeRPM = "rpm"
-	// TypeSWID is pkg:swid purl
+	// TypeSWID is a pkg:swid purl.
 	TypeSWID = "swid"
-	// TypeSwift is pkg:swift purl
+	// TypeSwift is a pkg:swift purl.
 	TypeSwift = "swift"
+	// TypeVSCodeExtension is a pkg:vscode-extension purl.
+	TypeVSCodeExtension = "vscode-extension"
+	// TypeYocto is a pkg:yocto purl.
+	TypeYocto = "yocto"
 
 	// KnownTypes is a map of types that are officially supported by the spec.
 	// See https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#known-purl-types
 	KnownTypes = map[string]struct{}{
-		TypeAlpm:        {},
-		TypeApk:         {},
-		TypeBitbucket:   {},
-		TypeBitnami:     {},
-		TypeCargo:       {},
-		TypeCocoapods:   {},
-		TypeComposer:    {},
-		TypeConan:       {},
-		TypeConda:       {},
-		TypeCpan:        {},
-		TypeCran:        {},
-		TypeDebian:      {},
-		TypeDocker:      {},
-		TypeGem:         {},
-		TypeGeneric:     {},
-		TypeGithub:      {},
-		TypeGolang:      {},
-		TypeHackage:     {},
-		TypeHex:         {},
-		TypeHuggingface: {},
-		TypeMaven:       {},
-		TypeMLFlow:      {},
-		TypeNPM:         {},
-		TypeNuget:       {},
-		TypeOCI:         {},
-		TypeOTP:         {},
-		TypePub:         {},
-		TypePyPi:        {},
-		TypeQpkg:        {},
-		TypeRPM:         {},
-		TypeSWID:        {},
-		TypeSwift:       {},
+		TypeAlpm:            {},
+		TypeApk:             {},
+		TypeBitbucket:       {},
+		TypeBitnami:         {},
+		TypeCargo:           {},
+		TypeCocoapods:       {},
+		TypeComposer:        {},
+		TypeConan:           {},
+		TypeConda:           {},
+		TypeCpan:            {},
+		TypeCran:            {},
+		TypeDebian:          {},
+		TypeDocker:          {},
+		TypeGem:             {},
+		TypeGeneric:         {},
+		TypeGithub:          {},
+		TypeGolang:          {},
+		TypeHackage:         {},
+		TypeHex:             {},
+		TypeHuggingface:     {},
+		TypeMaven:           {},
+		TypeMLFlow:          {},
+		TypeNPM:             {},
+		TypeNuget:           {},
+		TypeOCI:             {},
+		TypeOTP:             {},
+		TypePub:             {},
+		TypePyPi:            {},
+		TypeQpkg:            {},
+		TypeRPM:             {},
+		TypeSWID:            {},
+		TypeSwift:           {},
+		TypeVSCodeExtension: {},
+		TypeYocto:           {},
 	}
 
 	TypeApache      = "apache"
@@ -200,7 +206,6 @@ var (
 	TypeVagrant     = "vagrant"
 	TypeVim         = "vim"
 	TypeWORDPRESS   = "wordpress"
-	TypeYocto       = "yocto"
 
 	// CandidateTypes is a map of types that are not yet officially supported by the spec,
 	// but are being considered for inclusion.
@@ -693,6 +698,10 @@ func validCustomRules(p PackageURL) error {
 		}
 		if p.Version == "" {
 			return errors.New("version is required")
+		}
+	case TypeVSCodeExtension:
+		if p.Namespace == "" {
+			return errors.New("namespace is required")
 		}
 	}
 	return nil
