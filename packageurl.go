@@ -447,7 +447,7 @@ func FromString(purl string) (PackageURL, error) {
 	if err != nil {
 		return PackageURL{}, fmt.Errorf("invalid qualifiers: %w", err)
 	}
-	namespace, name, version, err := separateNamespaceNameVersion(p)
+	namespace, name, version, err := separateNamespaceNameVersion(typ, p)
 	if err != nil {
 		return PackageURL{}, err
 	}
@@ -510,37 +510,84 @@ func percentEncode(s string) string {
 	return replacer.Replace(s)
 }
 
-func separateNamespaceNameVersion(path string) (ns, name, version string, err error) {
-	name = path
+// percentDecode percent-decodes a purl component according to [Encoding].
+//
+// [Encoding] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#character-encoding
+func percentDecode(s string) (string, error) {
+	// Note: uses [url.PathUnescape] instead of [url.QueryUnescape] to treat '+' characters
+	// literally (not as space).
+	return url.PathUnescape(s)
+}
 
-	if namespaceSep := strings.LastIndex(name, "/"); namespaceSep != -1 {
-		ns, name = name[:namespaceSep], name[namespaceSep+1:]
-
-		ns, err = url.PathUnescape(ns)
-		if err != nil {
-			return "", "", "", fmt.Errorf("error unescaping namespace: %w", err)
-		}
+// separateNamespaceNameVersion parses the <namespace>/<name>@<version> part of a purl (the
+// remainder parameter) into its constituent components. It aims to follow the [HOW-TO-PARSE]
+// procedure.
+//
+// [HOW-TO-PARSE]: https://github.com/package-url/purl-spec/blob/main/docs/how-to-parse.md
+func separateNamespaceNameVersion(purlType string, remainder string) (ns, name, version string, err error) {
+	// NPM purls can have a namespace ("scope") that starts with an '@' character.
+	// For example, "pkg:npm/@babel/core".
+	// For any other purl type this indicates malformed purl input.
+	if purlType != TypeNPM && strings.HasPrefix(remainder, "@") {
+		return "", "", "", fmt.Errorf("purl is missing name")
 	}
 
-	if versionSep := strings.LastIndex(name, "@"); versionSep != -1 {
-		name, version = name[:versionSep], name[versionSep+1:]
-
-		version, err = url.PathUnescape(version)
+	// Split the remainder once from right on '@'.
+	// The left side is the remainder.
+	if strings.LastIndex(remainder, "@") > 0 {
+		remainder, version = rightmostSplit(remainder, "@")
+		// Percent-decode the right side. This is the version.
+		version, err = percentDecode(version)
 		if err != nil {
 			return "", "", "", fmt.Errorf("error unescaping version: %w", err)
 		}
 	}
 
-	name, err = url.PathUnescape(name)
+	// Split this once from right on '/'.
+	// The left side is the remainder.
+	remainder, name = rightmostSplit(remainder, "/")
+	// Percent-decode the right side. This is the name.
+	name, err = percentDecode(name)
 	if err != nil {
 		return "", "", "", fmt.Errorf("error unescaping name: %w", err)
 	}
+
+	// Split the remainder on '/'.
+	segments := strings.Split(remainder, "/")
+	nsSegments := []string{}
+	for _, segment := range segments {
+		// Discard any empty segment from that split.
+		if segment == "" {
+			continue
+		}
+		// Percent-decode each segment.
+		nsSegment, err := percentDecode(segment)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error unescaping namespace: %w", err)
+		}
+		nsSegments = append(nsSegments, nsSegment)
+	}
+	// Join segments back with a '/'.
+	ns = strings.Join(nsSegments, "/")
 
 	if name == "" {
 		return "", "", "", fmt.Errorf("purl is missing name")
 	}
 
 	return ns, name, version, nil
+}
+
+// rightmostSplit splits the input path on a given delimiter such that the lhs returns the string to
+// the left of the right-most delimiter and rhs return the string to the right of the right-most
+// delimiter. For example, given path "github.com/package-url/packageurl-go" and delimiter "/" the
+// lhs will be "github.com/package-url" and rhs will be "packageurl-go".
+func rightmostSplit(path string, delim string) (lhs, rhs string) {
+	lastSepIdx := strings.LastIndex(path, delim)
+	rhs = path[lastSepIdx+1:]
+	if lastSepIdx >= 0 {
+		lhs = path[:lastSepIdx]
+	}
+	return lhs, rhs
 }
 
 func parseQualifiers(rawQuery string) (Qualifiers, error) {
@@ -558,25 +605,21 @@ func parseQualifiers(rawQuery string) (Qualifiers, error) {
 		if key == "" {
 			continue
 		}
+		// The key is the lowercase left side.
 		key, value, _ := strings.Cut(key, "=")
-		key, err := url.QueryUnescape(key)
-		if err != nil {
-			return nil, fmt.Errorf("error unescaping qualifier key %q", key)
-		}
+		key = strings.ToLower(key)
 
 		if !validQualifierKey(key) {
 			return nil, fmt.Errorf("invalid qualifier key: '%s'", key)
 		}
 
-		value, err = url.QueryUnescape(value)
+		// The value is the percent-decoded right side.
+		value, err := percentDecode(value)
 		if err != nil {
 			return nil, fmt.Errorf("error unescaping qualifier value %q", value)
 		}
 
-		q = append(q, Qualifier{
-			Key:   strings.ToLower(key),
-			Value: value,
-		})
+		q = append(q, Qualifier{Key: key, Value: value})
 	}
 	return q, nil
 }
