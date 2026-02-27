@@ -625,3 +625,124 @@ func TestNormalize(t *testing.T) {
 		})
 	}
 }
+
+// purlExpectation represents an expected canonical purl and destructured [packageurl.PackageURL]
+// for a given input string.
+type purlExpectation struct {
+	// input represents a user-supplied purl input string to be parsed.
+	input string
+
+	// canonical is the expected canonical string represenation for input.
+	canonical string
+	// purl is the expected [packageurl.PackageURL] for input.
+	purl packageurl.PackageURL
+}
+
+// TestRoundtrip is intended to cover some tricky purl parsing/canonicalization that is not covered
+// by the purl-spec tests (yet).
+func TestRoundtrip(t *testing.T) {
+	tests := []struct {
+		name        string
+		expectation purlExpectation
+	}{
+		{
+			name: "input version with unescaped slashes",
+			expectation: purlExpectation{
+				input:     "pkg:github/golang/mod@refs/tags/v0.30.0",
+				canonical: "pkg:github/golang/mod@refs%2Ftags%2Fv0.30.0",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeGithub,
+					Namespace:  "golang",
+					Name:       "mod",
+					Version:    "refs/tags/v0.30.0",
+					Qualifiers: packageurl.Qualifiers{}}},
+		},
+
+		{
+			name: "go modules can have vanity urls without namespace",
+			expectation: purlExpectation{
+				input:     "pkg:golang/go.opencensus.io@v0.20.1",
+				canonical: "pkg:golang/go.opencensus.io@v0.20.1",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeGolang,
+					Name:       "go.opencensus.io",
+					Version:    "v0.20.1",
+					Qualifiers: packageurl.Qualifiers{}}},
+		},
+
+		{
+			name: "version with unescaped plus characters, qualifiers and subpath",
+			expectation: purlExpectation{
+				input:     "pkg:deb/debian/nuget@2.8.7+md510+dhx1-1.1?distro=stretch&repository_url=http://deb.debian.org&arch=amd64#subpath/to/file",
+				canonical: "pkg:deb/debian/nuget@2.8.7%2Bmd510%2Bdhx1-1.1?arch=amd64&distro=stretch&repository_url=http:%2F%2Fdeb.debian.org#subpath/to/file",
+				purl: packageurl.PackageURL{
+					Type:      packageurl.TypeDebian,
+					Namespace: "debian",
+					Name:      "nuget",
+					Version:   "2.8.7+md510+dhx1-1.1",
+					Qualifiers: packageurl.Qualifiers{
+						{Key: "arch", Value: "amd64"},
+						{Key: "distro", Value: "stretch"},
+						{Key: "repository_url", Value: "http://deb.debian.org"},
+					},
+					Subpath: "subpath/to/file"}},
+		},
+
+		{
+			name: "npm package with unescaped @ in scope and no version",
+			expectation: purlExpectation{
+				input:     "pkg:npm/@opentelemetry/sdk-trace-node",
+				canonical: "pkg:npm/%40opentelemetry/sdk-trace-node",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeNPM,
+					Namespace:  "@opentelemetry",
+					Name:       "sdk-trace-node",
+					Qualifiers: packageurl.Qualifiers{}}},
+		},
+
+		{
+			name: "npm package with unescaped @ in scope and version",
+			expectation: purlExpectation{
+				input:     "pkg:npm/@opentelemetry/sdk-trace-node@2.2.0",
+				canonical: "pkg:npm/%40opentelemetry/sdk-trace-node@2.2.0",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeNPM,
+					Namespace:  "@opentelemetry",
+					Name:       "sdk-trace-node",
+					Version:    "2.2.0",
+					Qualifiers: packageurl.Qualifiers{}}},
+		},
+
+		// See https://github.com/package-url/purl-spec/discussions/814#discussioncomment-15837007
+		{
+			name: "interpret + character in qualifier as literal plus (not space)",
+			expectation: purlExpectation{
+				input:     "pkg:generic/grafana@12.0.1?checksum=sha256:18a348109d3f92772bee72a55eabb9d318596add6a70b92adb6ff8e789d587a8&download_url=https://dl.grafana.com/enterprise/release/grafana-enterprise-12.0.1+security-01.linux-amd64.tar.gz",
+				canonical: "pkg:generic/grafana@12.0.1?checksum=sha256:18a348109d3f92772bee72a55eabb9d318596add6a70b92adb6ff8e789d587a8&download_url=https:%2F%2Fdl.grafana.com%2Fenterprise%2Frelease%2Fgrafana-enterprise-12.0.1%2Bsecurity-01.linux-amd64.tar.gz",
+				purl: packageurl.PackageURL{
+					Type:    packageurl.TypeGeneric,
+					Name:    "grafana",
+					Version: "12.0.1",
+					Qualifiers: packageurl.Qualifiers{
+						{Key: "checksum", Value: "sha256:18a348109d3f92772bee72a55eabb9d318596add6a70b92adb6ff8e789d587a8"},
+						{Key: "download_url", Value: "https://dl.grafana.com/enterprise/release/grafana-enterprise-12.0.1+security-01.linux-amd64.tar.gz"},
+					}}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := packageurl.FromString(tc.expectation.input)
+			if err != nil {
+				t.Fatalf("FromString(%s) unexpectedly failed: %v", tc.expectation.input, err)
+			}
+			if !reflect.DeepEqual(tc.expectation.purl, got) {
+				t.Fatalf("FromString(%s):\nwanted: %#v\ngot: %#v", tc.expectation.input, tc.expectation.purl, got)
+			}
+
+			if got.String() != tc.expectation.canonical {
+				t.Fatalf("String(%s):\nwanted: %s\ngot: %s", tc.expectation.input, tc.expectation.canonical, got.String())
+			}
+		})
+	}
+}
