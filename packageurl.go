@@ -824,16 +824,15 @@ func typeAdjustVersion(purlType, version string) string {
 // https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst#mlflow
 func adjustMlflowName(name string, qualifiers map[string]string) string {
 	if repo, ok := qualifiers["repository_url"]; ok {
-		if strings.Contains(repo, "azureml") {
-			// Azure ML is case-sensitive and must be kept as-is
-			return name
-		} else if strings.Contains(repo, "databricks") {
+		if strings.Contains(repo, "databricks") {
 			// Databricks is case-insensitive and must be lowercased
 			return strings.ToLower(name)
-		} else {
-			// Unknown repository type, keep as-is
-			return name
 		}
+
+		// Azure ML is case-sensitive and must be kept as-is
+		// Unknown repository type, keep as-is
+		return name
+
 	} else {
 		// No repository qualifier given, keep as-is
 		return name
