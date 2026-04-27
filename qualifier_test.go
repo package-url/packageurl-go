@@ -1,6 +1,9 @@
 package packageurl
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Verifies that qualifier values are properly percent-encoded.
 func TestQualifierValueEncoding(t *testing.T) {
@@ -103,7 +106,7 @@ func TestQualifierValueEncoding(t *testing.T) {
 	}
 }
 
-// Exercise the [percentEncode] function.
+// Exercise the [escapeQualifier] function.
 func TestPercentEncode(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -151,7 +154,9 @@ func TestPercentEncode(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := percentEncode(tc.givenValue)
+			var b strings.Builder
+			escapeQualifier(&b, tc.givenValue)
+			got := b.String()
 			if tc.want != got {
 				t.Logf("'%s' test failed: wanted: '%s', got '%s'", tc.name, tc.want, got)
 				t.Fail()
