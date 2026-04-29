@@ -623,44 +623,29 @@ func writePercentEncodedByte(b *strings.Builder, c byte) {
 }
 
 // isPathSegmentSafe reports whether c can appear unencoded in a purl path segment.
-// This includes RFC 3986 unreserved characters, most sub-delimiters, and ":"
-// but excludes "@" (purl version separator) and "+" (must be encoded per purl spec).
+// Per the purl spec, the only characters that must NOT be percent-encoded are:
+// alphanumerics, the unreserved punctuation '-', '.', '_', '~', and ':'.
+// All other characters — including RFC 3986 sub-delimiters such as '(', ')', '!',
+// '$', '&', "'", '*', ',', ';', '=' — must be percent-encoded.
+//
+// See https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#character-encoding
 func isPathSegmentSafe(c byte) bool {
-	// unreserved: A-Z a-z 0-9 - . _ ~
-	// sub-delims (excluding +): ! $ & ' ( ) * , ; =
-	// also allowed in pchar: :
-	// NOT safe: @ (purl version separator), + (must be %2B), / ? # (URL structure)
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-		c == '-' || c == '.' || c == '_' || c == '~' ||
-		c == '!' || c == '$' || c == '&' || c == '\'' ||
-		c == '(' || c == ')' || c == '*' ||
-		c == ',' || c == ';' || c == '=' || c == ':'
+		c == '-' || c == '.' || c == '_' || c == '~' || c == ':'
 }
 
 // escapeSubpath escapes a subpath, handling segments separated by '/'.
-// In subpaths, '+' must be encoded as %2B (unlike in path segments).
 func escapeSubpath(b *strings.Builder, s string) {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if c == '/' {
 			b.WriteByte('/')
-		} else if isSubpathSafe(c) {
+		} else if isPathSegmentSafe(c) {
 			b.WriteByte(c)
 		} else {
 			writePercentEncodedByte(b, c)
 		}
 	}
-}
-
-// isSubpathSafe reports whether c can appear unencoded in a purl subpath segment.
-// This is similar to isPathSegmentSafe but '+' must be encoded in subpaths.
-func isSubpathSafe(c byte) bool {
-	// Same as isPathSegmentSafe but '+' is NOT safe in subpath
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-		c == '-' || c == '.' || c == '_' || c == '~' ||
-		c == '!' || c == '$' || c == '&' || c == '\'' ||
-		c == '(' || c == ')' || c == '*' ||
-		c == ',' || c == ';' || c == '=' || c == ':'
 }
 
 const hexUpper = "0123456789ABCDEF"

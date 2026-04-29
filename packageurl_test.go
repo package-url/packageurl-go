@@ -713,6 +713,22 @@ func TestRoundtrip(t *testing.T) {
 					Qualifiers: packageurl.Qualifiers{}}},
 		},
 
+		// Per the purl spec character-encoding section, only alphanumerics, '-', '.',
+		// '_', '~', and ':' may appear unencoded in name/version/subpath segments.
+		// All other characters — including RFC 3986 sub-delimiters such as '(', ')',
+		// '!', '$', '&', "'", '*', ',', ';', '=' — must be percent-encoded.
+		{
+			name: "name and version with sub-delimiters are percent-encoded",
+			expectation: purlExpectation{
+				input:     "pkg:generic/Microsoft%20Visual%20C%2B%2B%20%28x86%29@14.28.29913%2A",
+				canonical: "pkg:generic/Microsoft%20Visual%20C%2B%2B%20%28x86%29@14.28.29913%2A",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeGeneric,
+					Name:       "Microsoft Visual C++ (x86)",
+					Version:    "14.28.29913*",
+					Qualifiers: packageurl.Qualifiers{}}},
+		},
+
 		// See https://github.com/package-url/purl-spec/discussions/814#discussioncomment-15837007
 		{
 			name: "interpret + character in qualifier as literal plus (not space)",
