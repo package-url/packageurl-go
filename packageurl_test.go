@@ -713,6 +713,19 @@ func TestRoundtrip(t *testing.T) {
 					Qualifiers: packageurl.Qualifiers{}}},
 		},
 
+		{
+			name: "percent-encoded subpath is decoded on parse",
+			expectation: purlExpectation{
+				input:     "pkg:cocoapods/GoogleUtilities@7.5.2#NSData%2Bzlib",
+				canonical: "pkg:cocoapods/GoogleUtilities@7.5.2#NSData%2Bzlib",
+				purl: packageurl.PackageURL{
+					Type:       packageurl.TypeCocoapods,
+					Name:       "GoogleUtilities",
+					Version:    "7.5.2",
+					Qualifiers: packageurl.Qualifiers{},
+					Subpath:    "NSData+zlib"}},
+		},
+
 		// See https://github.com/package-url/purl-spec/discussions/814#discussioncomment-15837007
 		{
 			name: "interpret + character in qualifier as literal plus (not space)",

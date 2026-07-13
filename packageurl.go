@@ -503,7 +503,13 @@ func FromString(purl string) (PackageURL, error) {
 	// Extract fragment (subpath)
 	var subpath string
 	if idx := strings.IndexByte(remainder, '#'); idx != -1 {
-		subpath = remainder[idx+1:]
+		// A subpath is a percent-encoded string and must be decoded like the
+		// other components (namespace, name, version).
+		decoded, err := percentDecodeSubpath(remainder[idx+1:])
+		if err != nil {
+			return PackageURL{}, fmt.Errorf("error unescaping subpath: %w", err)
+		}
+		subpath = decoded
 		remainder = remainder[:idx]
 	}
 
@@ -584,6 +590,24 @@ func percentDecode(s string) (string, error) {
 	// Note: uses [url.PathUnescape] instead of [url.QueryUnescape] to treat '+' characters
 	// literally (not as space).
 	return url.PathUnescape(s)
+}
+
+// percentDecodeSubpath percent-decodes a subpath by decoding each '/'-separated
+// segment on its own, so an encoded slash inside a segment is not treated as a
+// segment separator. This mirrors the per-segment decoding done for the namespace.
+func percentDecodeSubpath(s string) (string, error) {
+	if !strings.Contains(s, "%") {
+		return s, nil
+	}
+	segments := strings.Split(s, "/")
+	for i, segment := range segments {
+		decoded, err := percentDecode(segment)
+		if err != nil {
+			return "", err
+		}
+		segments[i] = decoded
+	}
+	return strings.Join(segments, "/"), nil
 }
 
 // writePercentEncodedString percent-encodes s as a purl path segment and writes it to the builder.
