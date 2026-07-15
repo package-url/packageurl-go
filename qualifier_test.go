@@ -2,6 +2,7 @@ package packageurl
 
 import (
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -163,4 +164,70 @@ func TestPercentEncode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Qualifiers.String and PackageURL.String should not reorder the caller's slice.
+func TestQualifiersStringDoesNotMutateReceiver(t *testing.T) {
+	q := Qualifiers{
+		{Key: "zeta", Value: "1"},
+		{Key: "alpha", Value: "2"},
+		{Key: "mid", Value: "3"},
+	}
+	before := make([]string, len(q))
+	for i, qq := range q {
+		before[i] = qq.Key
+	}
+
+	p := PackageURL{
+		Type:       "generic",
+		Name:       "openssl",
+		Version:    "1.2.3",
+		Qualifiers: q,
+	}
+	got := p.String()
+
+	if want := "pkg:generic/openssl@1.2.3?alpha=2&mid=3&zeta=1"; got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+
+	for i, qq := range q {
+		if qq.Key != before[i] {
+			t.Fatalf("String() reordered the caller's Qualifiers: got %v, want %v", keysOf(q), before)
+		}
+	}
+}
+
+func keysOf(q Qualifiers) []string {
+	out := make([]string, len(q))
+	for i, qq := range q {
+		out[i] = qq.Key
+	}
+	return out
+}
+
+// Two goroutines rendering the same PackageURL shouldn't write to the same
+// backing array. Only fails under -race.
+func TestQualifiersStringConcurrent(t *testing.T) {
+	p := PackageURL{
+		Type:    "generic",
+		Name:    "openssl",
+		Version: "1.2.3",
+		Qualifiers: Qualifiers{
+			{Key: "zeta", Value: "1"},
+			{Key: "alpha", Value: "2"},
+			{Key: "mid", Value: "3"},
+		},
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 1000; j++ {
+				_ = p.String()
+			}
+		}()
+	}
+	wg.Wait()
 }
