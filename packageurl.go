@@ -55,6 +55,8 @@ var (
 	TypeAlpm = "alpm"
 	// TypeApk is a pkg:apk purl.
 	TypeApk = "apk"
+	// TypeBazel is the pkg:bazel purl.
+	TypeBazel = "bazel"
 	// TypeBitbucket is a pkg:bitbucket purl.
 	TypeBitbucket = "bitbucket"
 	// TypeBitnami is a pkg:bitnami purl.
@@ -125,6 +127,7 @@ var (
 	KnownTypes = map[string]struct{}{
 		TypeAlpm:            {},
 		TypeApk:             {},
+		TypeBazel:           {},
 		TypeBitbucket:       {},
 		TypeBitnami:         {},
 		TypeCargo:           {},
