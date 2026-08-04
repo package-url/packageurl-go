@@ -396,6 +396,19 @@ func TestQualifierMissingEqual(t *testing.T) {
 	}
 }
 
+// The plain "foo/../bar" form has always been rejected by Normalize. The percent-encoded form
+// used to get through, because Subpath still held %2E%2E when that check ran.
+func TestEncodedDotDotSubpathIsRejected(t *testing.T) {
+	for _, input := range []string{
+		"pkg:generic/name@1.0#foo/../bar",
+		"pkg:generic/name@1.0#foo/%2E%2E/bar",
+	} {
+		if _, err := packageurl.FromString(input); err == nil {
+			t.Errorf("FromString(%s): expected an error, got none", input)
+		}
+	}
+}
+
 func TestNormalize(t *testing.T) {
 	testCases := []struct {
 		name    string
