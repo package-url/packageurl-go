@@ -186,6 +186,33 @@ var (
 	TypeHaxe        = "haxe"
 	TypeHelm        = "helm"
 	TypeJulia       = "julia"
+
+	// The following types are vionix-proj extensions — not in the upstream spec.
+	// They follow the same structural rules as TypeHelm and are registered as
+	// CandidateTypes so callers can detect them programmatically.
+
+	// TypeKustomize is a candidate type for Kustomize overlays used in GitOps
+	// deployments. The version is a git ref (commit SHA, tag, or branch).
+	// Qualifiers:
+	//   overlay  — relative path within the repo to the kustomization file
+	//              (e.g. "overlays/production")
+	//   url      — full git clone URL (optional when derivable from namespace+name)
+	//
+	// Examples:
+	//   pkg:kustomize/github.com/vionix-proj/k8s-config@main?overlay=overlays/production
+	//   pkg:kustomize/github.com/kubernetes-sigs/metrics-server@v0.7.2?overlay=deploy/kubernetes
+	TypeKustomize = "kustomize"
+
+	// TypeGit is a candidate type for bare Git repository references used as
+	// package sources — e.g. by Kustomize remote bases or Flux HelmRepository
+	// GitOps sources that point at a git URL rather than an OCI/Helm registry.
+	// The version is a git ref (commit SHA, tag, or branch).
+	// The namespace is the git host + org path (e.g. "github.com/vionix-proj").
+	//
+	// Examples:
+	//   pkg:git/github.com/vionix-proj/k8s-config@abc1234
+	//   pkg:git/github.com/helm/charts@v5.0.0
+	TypeGit = "git"
 	TypeLua         = "lua"
 	TypeMelpa       = "melpa"
 	TypeMeteor      = "meteor"
@@ -259,6 +286,9 @@ var (
 		TypeVim:         {},
 		TypeWORDPRESS:   {},
 		TypeYocto:       {},
+		// vionix-proj extensions
+		TypeKustomize: {},
+		TypeGit:       {},
 	}
 )
 

@@ -32,7 +32,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/package-url/packageurl-go"
+	"github.com/vionix-proj/packageurl-go"
 )
 
 // OrderedMap is used to store the TestFixture.QualifierMap, to ensure that the
