@@ -32,7 +32,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/package-url/packageurl-go"
+	"github.com/vionix-proj/packageurl-go"
 )
 
 // OrderedMap is used to store the TestFixture.QualifierMap, to ensure that the
@@ -742,6 +742,72 @@ func TestRoundtrip(t *testing.T) {
 
 			if got.String() != tc.expectation.canonical {
 				t.Fatalf("String(%s):\nwanted: %s\ngot: %s", tc.expectation.input, tc.expectation.canonical, got.String())
+			}
+		})
+	}
+}
+
+// TestNewGithubResolvedPackageURL verifies the SHA+originalRef fragment convention helper.
+func TestNewGithubResolvedPackageURL(t *testing.T) {
+	const sha = "a5ac7e51b41094c92402da3b24376905380afc29"
+
+	tests := []struct {
+		name        string
+		owner       string
+		repo        string
+		resolvedSHA string
+		originalRef string
+		path        string
+		wantPurl    string
+	}{
+		{
+			name:        "simple tag ref without path",
+			owner:       "actions",
+			repo:        "checkout",
+			resolvedSHA: sha,
+			originalRef: "v4",
+			path:        "",
+			wantPurl:    "pkg:github/actions/checkout@" + sha + "#v4",
+		},
+		{
+			name:        "branch ref without path",
+			owner:       "org",
+			repo:        "repo",
+			resolvedSHA: sha,
+			originalRef: "main",
+			path:        "",
+			wantPurl:    "pkg:github/org/repo@" + sha + "#main",
+		},
+		{
+			name:        "slash-containing branch ref without path",
+			owner:       "org",
+			repo:        "repo",
+			resolvedSHA: sha,
+			originalRef: "feature/my-branch",
+			path:        "",
+			wantPurl:    "pkg:github/org/repo@" + sha + "#feature/my-branch",
+		},
+		{
+			name:        "reusable workflow with path qualifier",
+			owner:       "org",
+			repo:        "repo",
+			resolvedSHA: sha,
+			originalRef: "main",
+			path:        ".github/workflows/ci.yml",
+			// path qualifier value contains '/' which must be percent-encoded
+			wantPurl: "pkg:github/org/repo@" + sha + "?path=.github%2Fworkflows%2Fci.yml#main",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := packageurl.NewGithubResolvedPackageURL(tc.owner, tc.repo, tc.resolvedSHA, tc.originalRef, tc.path)
+			if got == nil {
+				t.Fatal("NewGithubResolvedPackageURL returned nil")
+			}
+			gotStr := got.ToString()
+			if gotStr != tc.wantPurl {
+				t.Fatalf("ToString():\nwanted: %s\ngot:    %s", tc.wantPurl, gotStr)
 			}
 		})
 	}

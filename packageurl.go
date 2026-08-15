@@ -186,6 +186,33 @@ var (
 	TypeHaxe        = "haxe"
 	TypeHelm        = "helm"
 	TypeJulia       = "julia"
+
+	// The following types are vionix-proj extensions — not in the upstream spec.
+	// They follow the same structural rules as TypeHelm and are registered as
+	// CandidateTypes so callers can detect them programmatically.
+
+	// TypeKustomize is a candidate type for Kustomize overlays used in GitOps
+	// deployments. The version is a git ref (commit SHA, tag, or branch).
+	// Qualifiers:
+	//   overlay  — relative path within the repo to the kustomization file
+	//              (e.g. "overlays/production")
+	//   url      — full git clone URL (optional when derivable from namespace+name)
+	//
+	// Examples:
+	//   pkg:kustomize/github.com/vionix-proj/k8s-config@main?overlay=overlays/production
+	//   pkg:kustomize/github.com/kubernetes-sigs/metrics-server@v0.7.2?overlay=deploy/kubernetes
+	TypeKustomize = "kustomize"
+
+	// TypeGit is a candidate type for bare Git repository references used as
+	// package sources — e.g. by Kustomize remote bases or Flux HelmRepository
+	// GitOps sources that point at a git URL rather than an OCI/Helm registry.
+	// The version is a git ref (commit SHA, tag, or branch).
+	// The namespace is the git host + org path (e.g. "github.com/vionix-proj").
+	//
+	// Examples:
+	//   pkg:git/github.com/vionix-proj/k8s-config@abc1234
+	//   pkg:git/github.com/helm/charts@v5.0.0
+	TypeGit = "git"
 	TypeLua         = "lua"
 	TypeMelpa       = "melpa"
 	TypeMeteor      = "meteor"
@@ -259,6 +286,9 @@ var (
 		TypeVim:         {},
 		TypeWORDPRESS:   {},
 		TypeYocto:       {},
+		// vionix-proj extensions
+		TypeKustomize: {},
+		TypeGit:       {},
 	}
 )
 
@@ -431,6 +461,28 @@ func NewPackageURL(purlType, namespace, name, version string,
 		Qualifiers: qualifiers,
 		Subpath:    subpath,
 	}
+}
+
+// NewGithubResolvedPackageURL creates a pkg:github PURL for an action or repo
+// that has been resolved from a mutable ref (tag or branch) to an immutable
+// commit SHA. It encodes the original ref as the PURL subpath fragment (#) so
+// the PURL is both cryptographically pinned and human-readable:
+//
+//	pkg:github/actions/checkout@<sha>#v4
+//	pkg:github/org/repo@<sha>#main
+//	pkg:github/org/repo@<sha>#feature/my-branch
+//
+// This implements the proposed convention from purl-spec issue TBD.
+// The path parameter is optional and, when set, is added as a path= qualifier
+// (used for reusable workflow file references):
+//
+//	pkg:github/org/repo@<sha>?path=.github%2Fworkflows%2Ff.yml#main
+func NewGithubResolvedPackageURL(owner, repo, resolvedSHA, originalRef, path string) *PackageURL {
+	var qualifiers Qualifiers
+	if path != "" {
+		qualifiers = QualifiersFromMap(map[string]string{"path": path})
+	}
+	return NewPackageURL(TypeGithub, owner, repo, resolvedSHA, qualifiers, originalRef)
 }
 
 // ToString returns a canonical string representation of the qualifier according to [SPEC].
