@@ -463,6 +463,28 @@ func NewPackageURL(purlType, namespace, name, version string,
 	}
 }
 
+// NewGithubResolvedPackageURL creates a pkg:github PURL for an action or repo
+// that has been resolved from a mutable ref (tag or branch) to an immutable
+// commit SHA. It encodes the original ref as the PURL subpath fragment (#) so
+// the PURL is both cryptographically pinned and human-readable:
+//
+//	pkg:github/actions/checkout@<sha>#v4
+//	pkg:github/org/repo@<sha>#main
+//	pkg:github/org/repo@<sha>#feature/my-branch
+//
+// This implements the proposed convention from purl-spec issue TBD.
+// The path parameter is optional and, when set, is added as a path= qualifier
+// (used for reusable workflow file references):
+//
+//	pkg:github/org/repo@<sha>?path=.github%2Fworkflows%2Ff.yml#main
+func NewGithubResolvedPackageURL(owner, repo, resolvedSHA, originalRef, path string) *PackageURL {
+	var qualifiers Qualifiers
+	if path != "" {
+		qualifiers = QualifiersFromMap(map[string]string{"path": path})
+	}
+	return NewPackageURL(TypeGithub, owner, repo, resolvedSHA, qualifiers, originalRef)
+}
+
 // ToString returns a canonical string representation of the qualifier according to [SPEC].
 //
 // [SPEC] https://github.com/package-url/purl-spec/blob/main/PURL-SPECIFICATION.rst#rules-for-each-purl-component
