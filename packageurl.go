@@ -701,6 +701,13 @@ func separateNamespaceNameVersion(purlType string, remainder string) (ns, name, 
 	if purlType != TypeNPM && strings.HasPrefix(remainder, "@") {
 		return "", "", "", fmt.Errorf("purl is missing name")
 	}
+	// A leading '@' is only valid for npm when it introduces a scope, which
+	// requires a '/' to separate the scope from the name (for example,
+	// "pkg:npm/@babel/core"). A remainder like "@4.17.21" has no '/', so it is a
+	// bare scope with no name and must be rejected the same way as v0.1.3 did.
+	if purlType == TypeNPM && strings.HasPrefix(remainder, "@") && !strings.Contains(remainder, "/") {
+		return "", "", "", fmt.Errorf("purl is missing name")
+	}
 
 	// Split the remainder once from right on '@'.
 	// The left side is the remainder.

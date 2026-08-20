@@ -772,3 +772,73 @@ func TestRoundtrip(t *testing.T) {
 		})
 	}
 }
+
+// TestNpmScopeWithoutName guards the regression reported in
+// https://github.com/package-url/packageurl-go/issues/91. An npm purl whose
+// remainder is a bare scope with no name (a leading '@' and no '/') must return
+// "purl is missing name", while valid scoped and unscoped npm purls keep
+// parsing.
+func TestNpmScopeWithoutName(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantErr  bool
+		wantName string
+		wantNS   string
+		wantVer  string
+	}{
+		{
+			name:    "bare scope without name returns error",
+			input:   "pkg:npm/@4.17.21",
+			wantErr: true,
+		},
+		{
+			name:    "bare scope without name or version returns error",
+			input:   "pkg:npm/@babel",
+			wantErr: true,
+		},
+		{
+			name:     "scoped package with name and version parses",
+			input:    "pkg:npm/@opentelemetry/sdk-trace-node@2.2.0",
+			wantName: "sdk-trace-node",
+			wantNS:   "@opentelemetry",
+			wantVer:  "2.2.0",
+		},
+		{
+			name:     "scoped package with name and no version parses",
+			input:    "pkg:npm/@opentelemetry/sdk-trace-node",
+			wantName: "sdk-trace-node",
+			wantNS:   "@opentelemetry",
+		},
+		{
+			name:     "unscoped package with version parses",
+			input:    "pkg:npm/lodash@4.17.21",
+			wantName: "lodash",
+			wantVer:  "4.17.21",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := packageurl.FromString(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("FromString(%s): expected error, got nil (parsed as %#v)", tc.input, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("FromString(%s) unexpectedly failed: %v", tc.input, err)
+			}
+			if got.Name != tc.wantName {
+				t.Errorf("FromString(%s): name = %q, want %q", tc.input, got.Name, tc.wantName)
+			}
+			if got.Namespace != tc.wantNS {
+				t.Errorf("FromString(%s): namespace = %q, want %q", tc.input, got.Namespace, tc.wantNS)
+			}
+			if got.Version != tc.wantVer {
+				t.Errorf("FromString(%s): version = %q, want %q", tc.input, got.Version, tc.wantVer)
+			}
+		})
+	}
+}
