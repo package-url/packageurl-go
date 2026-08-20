@@ -291,11 +291,14 @@ func (q Qualifiers) String() string {
 	if len(q) == 0 {
 		return ""
 	}
-	slices.SortFunc(q, func(a, b Qualifier) int { return strings.Compare(a.Key, b.Key) })
+	// Sort a copy: q shares its backing array with the caller's slice, so
+	// sorting in place would reorder their data as a side effect of String().
+	sorted := slices.Clone(q)
+	slices.SortFunc(sorted, func(a, b Qualifier) int { return strings.Compare(a.Key, b.Key) })
 	var b strings.Builder
 	// Estimate capacity: each qualifier needs key + "=" + value + "&"
-	b.Grow(len(q) * 32)
-	for i, qq := range q {
+	b.Grow(len(sorted) * 32)
+	for i, qq := range sorted {
 		if i > 0 {
 			b.WriteByte('&')
 		}
