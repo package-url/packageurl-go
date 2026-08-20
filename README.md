@@ -14,6 +14,10 @@ go get -u github.com/package-url/packageurl-go
 
 The versions will follow the spec. So if the spec is released at ``1.0``. Then all versions in the ``1.x.y`` will follow the ``1.x`` spec.
 
+## Contributing & Releases
+
+Releases and `CHANGELOG.md` are automated with [release-please](https://github.com/googleapis/release-please). For this to work, **pull request titles must follow [Conventional Commits](https://www.conventionalcommits.org/)**, since PRs are squash-merged and the title becomes the commit message.
+
 
 ## Usage
 
