@@ -957,10 +957,7 @@ func validCustomRules(p PackageURL) error {
 			return errors.New("a chrome-extension version must be 1 to 4 dot-separated integers")
 		}
 	case TypeCpan:
-		// It MUST be written uppercase and is required.
-		if p.Namespace == "" {
-			return errors.New("a cpan purl must have a namespace")
-		}
+		// It MUST be written uppercase.
 		if strings.ToUpper(p.Namespace) != p.Namespace {
 			return errors.New("a cpan purl namespace must use uppercase characters")
 		}
