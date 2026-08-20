@@ -115,6 +115,8 @@ var (
 	TypeSWID = "swid"
 	// TypeSwift is a pkg:swift purl.
 	TypeSwift = "swift"
+	// TypeVcpkg is a pkg:vcpkg purl.
+	TypeVcpkg = "vcpkg"
 	// TypeVSCodeExtension is a pkg:vscode-extension purl.
 	TypeVSCodeExtension = "vscode-extension"
 	// TypeYocto is a pkg:yocto purl.
@@ -156,6 +158,7 @@ var (
 		TypeRPM:             {},
 		TypeSWID:            {},
 		TypeSwift:           {},
+		TypeVcpkg:           {},
 		TypeVSCodeExtension: {},
 		TypeYocto:           {},
 	}
@@ -984,6 +987,10 @@ func validCustomRules(p PackageURL) error {
 	case TypeSwift:
 		if p.Namespace == "" {
 			return errors.New("namespace is required")
+		}
+	case TypeVcpkg:
+		if p.Namespace != "" {
+			return errors.New("a vcpkg purl must not have a namespace")
 		}
 	case TypeVSCodeExtension:
 		if p.Namespace == "" {
