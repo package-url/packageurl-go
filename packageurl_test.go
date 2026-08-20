@@ -183,7 +183,8 @@ func readJSONFilesFromDir(dirPath string) ([]jsonFile, error) {
 	return result, nil
 }
 
-func roundTripTest(tc TestFixture, t *testing.T) {
+// validateTest runs a test to validate whether a PURL input string is in canonical form.
+func validateTest(tc TestFixture, t *testing.T) {
 	p, err := packageurl.FromString(*tc.Input.Purl)
 	if tc.ExpectedFailure == false {
 		if err != nil {
@@ -284,7 +285,6 @@ func buildTest(tc TestFixture, t *testing.T) {
 			t.Fail()
 		}
 	}
-
 }
 
 func TestPurlSpecFixtures(t *testing.T) {
@@ -306,8 +306,8 @@ func TestPurlSpecFixtures(t *testing.T) {
 				testType := tc.TestType
 
 				switch testType {
-				case "roundtrip":
-					roundTripTest(tc, t)
+				case "validate":
+					validateTest(tc, t)
 				case "parse":
 					parseTest(tc, t)
 				case "build":
@@ -315,9 +315,7 @@ func TestPurlSpecFixtures(t *testing.T) {
 				default:
 					t.Fatalf("Unsupported test type: %s", testType)
 				}
-
 			})
-
 		}
 	}
 }
