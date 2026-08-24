@@ -138,19 +138,62 @@ func (cop *ComponentsOrPurl) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("ComponentsOrPurl: data is neither a string nor PURL component")
 }
 
-type TestFixture struct {
-	Description           string           `json:"description"`
-	TestGroup             string           `json:"test_group"`
-	TestType              string           `json:"test_type"`
-	Input                 ComponentsOrPurl `json:"input"`
-	ExpectedFailure       bool             `json:"expected_failure"`
-	ExpectedOutput        ComponentsOrPurl `json:"expected_output"`
-	ExpectedFailureReason *string          `json:"expected_failure_reason"`
+// TestGroup indicates a conformance group for a [PurlTest].
+type TestGroup string
+
+const (
+	// Test group for test cases required for conformance with the PURL standard - ECMA-427.
+	TestGroupRequired TestGroup = "required"
+	// Test group for test cases recommended to identify common problems in PURL data and how to
+	// remediate or normalize them in order to pass 'required' tests.
+	TestGroupRecommended TestGroup = "recommended"
+)
+
+// TestType declares the functional type of a [PurlTest].
+type TestType string
+
+const (
+	// TestTypeBuild denotes a [PurlTest] to build a canonical PURL output string from an input
+	// of decoded PURL components.
+	TestTypeBuild TestType = "build"
+	// TestTypeParse denotes a [PurlTest] to parse a PURL input string into a set of decoded
+	// components.
+	TestTypeParse TestType = "parse"
+	// TestTypeValidate denotes a [PurlTest] to validate whether a PURL input string is in
+	// canonical form.
+	TestTypeValidate TestType = "validate"
+)
+
+// A PurlTest represents a PURL test case with input and expected output.
+// Its structure is defined by [TEST-SCHEMA-2.0].
+//
+// [TEST-SCHEMA-2.0]: https://github.com/package-url/purl-spec/blob/main/schemas/purl-test.schema-0.2.json
+type PurlTest struct {
+	// Description provides a description for this test.
+	Description string `json:"description"`
+	// TestGroup indicates the conformance group of this test case.
+	// Either [TestGroupRequired] or [TestGroupRecommended].
+	TestGroup TestGroup `json:"test_group"`
+	// TestType is the functional type of this test case.
+	TestType TestType `json:"test_type"`
+	// Input is the test case input (canonical or not).
+	Input ComponentsOrPurl `json:"input"`
+
+	// ExpectedOutput is the wanted test case output, unless ExpectedFailure is true.
+	ExpectedOutput ComponentsOrPurl `json:"expected_output"`
+	// ExpectedFailure is true if this test Input is expected to fail to be processed.
+	ExpectedFailure bool `json:"expected_failure"`
+	// ExpectedMessage holds the reason why a test failed or another message about the test
+	// result.
+	ExpectedMessage *string `json:"expected_message"`
 }
 
+// TestSuite captures test cases for a purl type.
+//
+// See https://github.com/package-url/purl-spec/blob/main/docs/tests/test-suite.md
 type TestSuite struct {
-	Schema string        `json:"$schema"`
-	Tests  []TestFixture `json:"tests"`
+	Schema string     `json:"$schema"`
+	Tests  []PurlTest `json:"tests"`
 }
 
 type jsonFile struct {
@@ -183,7 +226,8 @@ func readJSONFilesFromDir(dirPath string) ([]jsonFile, error) {
 	return result, nil
 }
 
-func roundTripTest(tc TestFixture, t *testing.T) {
+// validateTest runs a [TestTypeValidate] test.
+func validateTest(tc PurlTest, t *testing.T) {
 	p, err := packageurl.FromString(*tc.Input.Purl)
 	if tc.ExpectedFailure == false {
 		if err != nil {
@@ -206,16 +250,17 @@ func roundTripTest(tc TestFixture, t *testing.T) {
 			t.Logf("%s did not fail and returned %#v", tc.Description, p)
 			t.Fail()
 		}
-
 	}
 }
 
-func parseTest(tc TestFixture, t *testing.T) {
+// parseTest runs a [TestTypeParse] test.
+func parseTest(tc PurlTest, t *testing.T) {
 	p, err := packageurl.FromString(*tc.Input.Purl)
 	if tc.ExpectedFailure == false {
 		if err != nil {
 			t.Logf("%s failed: %s", tc.Description, err)
 			t.Fail()
+			return
 		}
 		// verify parsing
 		expected := tc.ExpectedOutput.PurlComponent
@@ -262,7 +307,8 @@ func parseTest(tc TestFixture, t *testing.T) {
 
 }
 
-func buildTest(tc TestFixture, t *testing.T) {
+// buildTest runs a [TestTypeBuild] test.
+func buildTest(tc PurlTest, t *testing.T) {
 	input := tc.Input.PurlComponent
 	instance := packageurl.NewPackageURL(
 		input.PackageType, input.Namespace, input.Name, input.Version,
@@ -287,12 +333,26 @@ func buildTest(tc TestFixture, t *testing.T) {
 
 }
 
-func TestPurlSpecFixtures(t *testing.T) {
+// TestCoreSpec runs purl-spec tests that are for the core specification and not for a specific PURL
+// type.
+func TestCoreSpec(t *testing.T) {
+	testFiles, err := readJSONFilesFromDir("testdata/purl-spec/tests/spec/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runTestFiles(t, testFiles)
+}
+
+// TestPurlTypes runs purl-spec tests for each registered PURL type.
+func TestPurlTypes(t *testing.T) {
 	testFiles, err := readJSONFilesFromDir("testdata/purl-spec/tests/types/")
 	if err != nil {
 		t.Fatal(err)
 	}
+	runTestFiles(t, testFiles)
+}
 
+func runTestFiles(t *testing.T, testFiles []jsonFile) {
 	for _, file := range testFiles {
 		var suite TestSuite
 		err := json.Unmarshal(file.content, &suite)
@@ -306,18 +366,16 @@ func TestPurlSpecFixtures(t *testing.T) {
 				testType := tc.TestType
 
 				switch testType {
-				case "roundtrip":
-					roundTripTest(tc, t)
-				case "parse":
+				case TestTypeValidate:
+					validateTest(tc, t)
+				case TestTypeParse:
 					parseTest(tc, t)
-				case "build":
+				case TestTypeBuild:
 					buildTest(tc, t)
 				default:
 					t.Fatalf("Unsupported test type: %s", testType)
 				}
-
 			})
-
 		}
 	}
 }

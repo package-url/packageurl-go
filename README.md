@@ -55,23 +55,16 @@ func main() {
 
 
 ## Test
-Testing using the normal ``go test`` command. Using ``make test`` will pull the test fixtures shared between all package-url projects and then execute the tests.
+Testing uses the normal ``go test`` command. 
 
-```
-curl -Ls https://raw.githubusercontent.com/package-url/purl-spec/master/test-suite-data.json -o testdata/test-suite-data.json
-go test -v -cover ./...
-=== RUN   TestFromStringExamples
---- PASS: TestFromStringExamples (0.00s)
-=== RUN   TestToStringExamples
---- PASS: TestToStringExamples (0.00s)
-=== RUN   TestStringer
---- PASS: TestStringer (0.00s)
-=== RUN   TestQualifiersMapConversion
---- PASS: TestQualifiersMapConversion (0.00s)
-PASS
-        github.com/package-url/packageurl-go    coverage: 90.7% of statements
-ok      github.com/package-url/packageurl-go    0.004s  coverage: 90.7% of statements
-```
+There are two main categories of tests. Both are run with `make test`.
+
+1. Tests that exercise the code against the [purl-spec testsuite](https://github.com/package-url/purl-spec/tree/main/tests): `TestCoreSpec` and `TestPurlTypes`.
+   The testsuite is included as a git submodule.
+   The testsuite is under construction and sees frequent changes. 
+   Such changes can be pulled in with `make testsuite-update`, which updates the submodule.
+2. Tests that try to verify behavior not necessarily covered by the purl-spec testsuite (any other `Test*` function).
+
 
 ## Fuzzing
 
